@@ -2125,6 +2125,10 @@ body.rb-sleept,body.rb-sleept *{cursor:grabbing!important;user-select:none;-webk
 .sv-as{stroke:var(--ink-3);stroke-width:2} .sv-schoep{fill:var(--ink-2)}
 .sv-jet-g{stroke:rgba(255,255,255,.75);stroke-width:1.6;stroke-dasharray:2 10;stroke-linecap:round}
 .sv-bel{fill:rgba(255,255,255,.85)}
+/* 25-09: de retourpluim en de wervels bij rondpompen, de kolk bij een roerder (geen luchtbellen: die zijn er niet) */
+.sv-pluim{fill:none;stroke:rgba(255,255,255,.42);stroke-width:3;stroke-linecap:round}
+.sv-wervel{fill:none;stroke:rgba(255,255,255,.5);stroke-width:1.3}
+.sv-kolk{fill:rgba(0,0,0,.16)}
 .sv-fc circle{fill:var(--c-surface);stroke:var(--ink-3);stroke-width:1.6} .sv-fc text{font-size:12px;font-weight:700;fill:var(--ink-2)}
 .sv-terug{fill:var(--c-surface);stroke:var(--ink-3);stroke-width:1.5} .sv-terug-l{stroke:var(--ink-3);stroke-width:1.8}
 .sv-bar{fill:var(--c-line)} .sv-bar-i{fill:var(--acc)}
@@ -2179,9 +2183,9 @@ body.rb-sleept,body.rb-sleept *{cursor:grabbing!important;user-select:none;-webk
 
 <div class="toast" id="toast"></div>
 
-<script src="machine.js?v=202609251509"></script>
-<script src="plc.js?v=202609251509"></script>
-<script src="nabootsing.js?v=202609251509"></script>
+<script src="machine.js?v=202609251543"></script>
+<script src="plc.js?v=202609251543"></script>
+<script src="nabootsing.js?v=202609251543"></script>
 <script>
 "use strict";
 /* ==================================================================
@@ -3438,7 +3442,8 @@ function beurtTegel(k,titel,tabel,prefix,st){
   else if(fase===null||fase===0)kop=`<span class="muted">Geen beurt</span>`;
   else{
     kop=`<span class="mono">${prefix}${fase}</span> ${rij?esc(faseNaam(rij[1])):'<span class="muted">staat niet in het ontwerp</span>'}`;
-    regel=[info.meststof?esc(String(info.meststof)):'',info.bestemming?('naar '+esc(String(info.bestemming))):''].filter(Boolean).join(' · ');
+    /* waar de keten op wacht (machine.ketens[k].wacht, sinds 25-09) gaat vóór de stof */
+    regel=[info.wacht?esc(String(info.wacht)):(info.meststof?esc(String(info.meststof)):''),info.bestemming?('naar '+esc(String(info.bestemming))):''].filter(Boolean).join(' · ');
     const doel=Number(info.doelL),tel=Number(info.geteldL);
     if(info.doelL!=null&&info.geteldL!=null&&isFinite(doel)&&isFinite(tel)&&doel>0){
       const pc=Math.max(0,Math.min(100,tel/doel*100));
@@ -3691,33 +3696,55 @@ function svDraai(g,aan,dur){if(!g)return;const w=g.querySelector('[id^="pw-"]')|
   else if(a)a.remove();}
 function svRoer(id,aan){const rb=document.getElementById('rb-'+id);['rs-','rm-'].forEach(p=>svZet(document.getElementById(p+id),'aan',aan));
   if(!rb)return;const a=rb.querySelector('animate');if(aan&&svBeweging()){if(!a)rb.insertAdjacentHTML('beforeend','<animate attributeName="rx" values="12;2;12" dur=".42s" repeatCount="indefinite"/>');}else if(a)a.remove();}
-function svStraal(id,kleur){const j=document.getElementById('jet-'+id),l=document.getElementById('jl-'+id),p=document.getElementById('pl-'+id);if(!j)return;
-  if(kleur){l.style.stroke=kleur;j.setAttribute('visibility','visible');if(p){p.setAttribute('visibility','visible');if(svBeweging()&&!p.querySelector('animate'))p.insertAdjacentHTML('beforeend','<animate attributeName="rx" values="3;16" dur=".9s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur=".9s" repeatCount="indefinite"/>');}
+/* de straal in de bak begint pas als de vloeistof in de tekening bij de bak is: tot = het tijdstip op de svg-klok
+   waarop het laatste stuk leiding vol is (uit svStromen); daarvoor blijft hij verborgen */
+function svStraalAan(el,tot){if(el.dataset.aan==='1')return;el.dataset.aan='1';el.querySelectorAll(':scope > set').forEach(a=>a.remove());
+  const svg=el.ownerSVGElement;const nu=svg&&svg.getCurrentTime?svg.getCurrentTime():0;
+  if(svBeweging()&&tot&&tot>nu+0.05){el.setAttribute('visibility','hidden');el.insertAdjacentHTML('beforeend',`<set attributeName="visibility" to="visible" begin="${tot.toFixed(3)}s" fill="freeze"/>`);}
+  else el.setAttribute('visibility','visible');}
+function svStraal(id,kleur,tot){const j=document.getElementById('jet-'+id),l=document.getElementById('jl-'+id),p=document.getElementById('pl-'+id);if(!j)return;
+  if(kleur){l.style.stroke=kleur;svStraalAan(j,tot);if(p){svStraalAan(p,tot);if(svBeweging()&&!p.querySelector('animate'))p.insertAdjacentHTML('beforeend','<animate attributeName="rx" values="3;16" dur=".9s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur=".9s" repeatCount="indefinite"/>');}
     const g=j.querySelector('.sv-jet-g');if(g&&svBeweging()&&!g.querySelector('animate'))g.insertAdjacentHTML('beforeend','<animate attributeName="stroke-dashoffset" from="0" to="-12" dur=".5s" repeatCount="indefinite"/>');}
-  else{j.setAttribute('visibility','hidden');if(p){p.setAttribute('visibility','hidden');p.querySelectorAll('animate').forEach(a=>a.remove());}}}
-function svBellen(id,aan,yIn){const b=document.getElementById('bel-'+id);const t=document.getElementById('t-'+id);if(!b||!t)return;const sl=aan?'1':'';
-  if(b.dataset.aan===sl)return;b.dataset.aan=sl;if(!aan||!svBeweging()){b.innerHTML='';return;}
-  const x0=+t.querySelector('.sv-tank-bg').getAttribute('x'),w=+t.querySelector('.sv-tank-bg').getAttribute('width');const y=+t.dataset.y,h=+t.dataset.h;
-  const vl=document.getElementById('vl-'+id);const top=parseFloat((vl.style.transform.match(/translateY\(([-\d.]+)px\)/)||[])[1]);const bov=(isFinite(top)?top:y+h/2)+5,ond=y+h-8;
-  let s='';for(let i=0;i<14;i++){const x=x0+12+((i*37)%100)/100*(w-24),r=(1.3+(i%4)*.55).toFixed(1),d=(1.6+(i%5)*.35).toFixed(2),bg=((i*0.29)%2).toFixed(2);
-    s+=`<circle cx="${x.toFixed(1)}" cy="${ond}" r="${r}" class="sv-bel"><animate attributeName="cy" from="${ond}" to="${bov.toFixed(1)}" dur="${d}s" begin="${bg}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.95;.8;0" dur="${d}s" begin="${bg}s" repeatCount="indefinite"/></circle>`;}
-  if(yIn){for(let i=0;i<7;i++){const d=(1+(i%3)*.3).toFixed(2),bg=((i*0.17)%1.2).toFixed(2),r=(1.2+(i%3)*.5).toFixed(1);
-    s+=`<circle cx="${x0+2}" cy="${yIn}" r="${r}" class="sv-bel"><animate attributeName="cx" from="${x0+2}" to="${(x0+w*.55).toFixed(1)}" dur="${d}s" begin="${bg}s" repeatCount="indefinite"/><animate attributeName="cy" from="${yIn}" to="${(yIn-18).toFixed(1)}" dur="${d}s" begin="${bg}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;0" dur="${d}s" begin="${bg}s" repeatCount="indefinite"/></circle>`;}}
-  b.innerHTML=s;}
-/* stroming: per stuk leiding een sleutel; wat nieuw is, loopt vol in stroomrichting, daarna glinstert het */
+  else{j.dataset.aan='';j.querySelectorAll(':scope > set').forEach(a=>a.remove());j.setAttribute('visibility','hidden');if(p){p.dataset.aan='';p.setAttribute('visibility','hidden');p.querySelectorAll('animate,set').forEach(a=>a.remove());}}}
+/* roering in een bak (25-09, Wessel: "echt realistisch, niet nep"). Bij rondpompen komt de retour onder het oppervlak
+   de bak in (yIn): een pluim die uitwaaiert en wervels erboven, geen luchtbellen (die zijn er niet). Bij een roerder een
+   kolk aan het oppervlak boven de schoep en wervels eronder. */
+function svRoering(id,soort,yIn){const b=document.getElementById('bel-'+id);const t=document.getElementById('t-'+id);if(!b||!t)return;const sl=soort||'';
+  const vl=document.getElementById('vl-'+id);const top=parseFloat((vl.style.transform.match(/translateY\(([-\d.]+)px\)/)||[])[1]);const y=+t.dataset.y,h=+t.dataset.h;const opp=isFinite(top)?top:y+h/2;
+  if(b.dataset.aan===sl){const k=b.querySelector('.sv-kolk');if(k)k.setAttribute('cy',(opp+2).toFixed(1));return;}
+  b.dataset.aan=sl;if(!soort||!svBeweging()){b.innerHTML='';return;}
+  const bg=t.querySelector('.sv-tank-bg');const x0=+bg.getAttribute('x'),w=+bg.getAttribute('width');
+  let s='';
+  if(soort==='retour'){const yi=yIn||(y+h*0.66);const x1=x0+2,xe=x0+w*0.62;
+    for(let i=0;i<4;i++){const dy=(i-1.5)*4.5,d=(1.5+(i%3)*.35).toFixed(2),bg2=(i*0.45).toFixed(2);
+      s+=`<line class="sv-pluim" x1="${x1}" y1="${(yi+dy).toFixed(1)}" x2="${x1}" y2="${(yi+dy*2.2).toFixed(1)}"><animate attributeName="x2" from="${x1}" to="${xe.toFixed(1)}" dur="${d}s" begin="${bg2}s" repeatCount="indefinite"/><animate attributeName="x1" from="${x1}" to="${(x1+w*0.25).toFixed(1)}" dur="${d}s" begin="${bg2}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;.6;0" dur="${d}s" begin="${bg2}s" repeatCount="indefinite"/></line>`;}
+    for(let i=0;i<3;i++){const d=(2.2+i*.5).toFixed(2);s+=`<ellipse class="sv-wervel" cx="${(x0+w*(0.45+i*0.15)).toFixed(1)}" cy="${(yi-8-i*6).toFixed(1)}" rx="9" ry="4"><animate attributeName="rx" values="4;14;4" dur="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.5;0" dur="${d}s" begin="${(i*0.7).toFixed(1)}s" repeatCount="indefinite"/></ellipse>`;}}
+  else if(soort==='roerder'){const sx=x0+w*0.26;
+    s+=`<ellipse class="sv-kolk" cx="${sx.toFixed(1)}" cy="${(opp+2).toFixed(1)}" rx="9" ry="3"><animate attributeName="rx" values="7;11;7" dur="1.6s" repeatCount="indefinite"/><animate attributeName="ry" values="2.5;3.8;2.5" dur="1.6s" repeatCount="indefinite"/></ellipse>`;
+    for(let i=0;i<3;i++){const d=(1.4+i*.3).toFixed(1),bg2=(i*0.4).toFixed(1);s+=`<ellipse class="sv-wervel" cx="${sx.toFixed(1)}" cy="${(opp+14+i*16).toFixed(1)}" rx="12" ry="3"><animate attributeName="rx" values="6;16;6" dur="${d}s" begin="${bg2}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.45;0" dur="${d}s" begin="${bg2}s" repeatCount="indefinite"/></ellipse>`;}}
+  b.innerHTML=s;
+}
 function svStromen(ketens){
-  const g=document.getElementById('sv-stromen');const svg=g&&g.ownerSVGElement;if(!g||!svg)return;
-  const nieuw={};ketens.forEach(k=>k.stukken.forEach(st=>{nieuw[st.d+'|'+k.kleur]=1;}));
-  const bestaand=new Set();[...g.children].forEach(e=>{if(!nieuw[e.dataset.s])e.remove();else bestaand.add(e.dataset.s);});
-  const beweeg=svBeweging();const nu=beweeg&&svg.getCurrentTime?svg.getCurrentTime():0;
+  /* 25-09 (Wessel: "hij hoort vanaf de bak te vloeien"): een keten is één aaneengesloten weg van de bron tot de bak; elk
+     stuk krijgt zijn kleur (st.kleur of k.kleur). Een stuk met vast:true (de perskant) houdt zijn element als alleen de
+     kleur verandert: die kleur is wat er uit de leiding komt (machine.leidingUit), en die wisselt in één keer.
+     Geeft per stuk het tijdstip op de svg-klok terug waarop het vol is, zodat de straal in de bak pas dan begint. */
+  const g=document.getElementById('sv-stromen');const svg=g&&g.ownerSVGElement;if(!g||!svg)return {};
+  const sleutel=(k,st)=>st.vast?(st.d+'|vast'):(st.d+'|'+(st.kleur||k.kleur));
+  const nieuw={};ketens.forEach(k=>k.stukken.forEach(st=>{nieuw[sleutel(k,st)]=st.kleur||k.kleur;}));
+  const bestaand=new Set();[...g.children].forEach(e=>{const s=e.dataset.s;
+    if(!(s in nieuw))e.remove();else{bestaand.add(s);const p=e.querySelector('.sv-vloei')||e;if(p.style.stroke!==nieuw[s])p.style.stroke=nieuw[s];}});
+  const beweeg=svBeweging();const nu=beweeg&&svg.getCurrentTime?svg.getCurrentTime():0;const klaar={};
   ketens.forEach(k=>{let t=0.15;
-    k.stukken.forEach(st=>{const sl=st.d+'|'+k.kleur;if(bestaand.has(sl))return;bestaand.add(sl);
+    k.stukken.forEach(st=>{const sl=sleutel(k,st);const kleur=st.kleur||k.kleur;
+      if(bestaand.has(sl)){klaar[st.d]=nu;return;}bestaand.add(sl);
       const m=document.createElementNS('http://www.w3.org/2000/svg','path');m.setAttribute('d',st.d);g.appendChild(m);const L=m.getTotalLength();m.remove();
-      if(!beweeg){g.insertAdjacentHTML('beforeend',`<path class="sv-vloei" data-s="${esc(sl)}" d="${st.d}" style="stroke:${k.kleur}"/>`);return;}
+      if(!beweeg){g.insertAdjacentHTML('beforeend',`<path class="sv-vloei" data-s="${esc(sl)}" d="${st.d}" style="stroke:${kleur}"/>`);klaar[st.d]=nu;return;}
       const duur=L/SV.SNEL,b=(nu+t).toFixed(3),e=(nu+t+duur).toFixed(3);
-      g.insertAdjacentHTML('beforeend',`<g data-s="${esc(sl)}"><path class="sv-vloei" d="${st.d}" style="stroke:${k.kleur}" stroke-dasharray="${L.toFixed(1)} ${L.toFixed(1)}" stroke-dashoffset="${L.toFixed(1)}"><animate attributeName="stroke-dashoffset" from="${L.toFixed(1)}" to="0" dur="${duur.toFixed(3)}s" begin="${b}s" fill="freeze"/></path>`
+      g.insertAdjacentHTML('beforeend',`<g data-s="${esc(sl)}"><path class="sv-vloei" d="${st.d}" style="stroke:${kleur}" stroke-dasharray="${L.toFixed(1)} ${L.toFixed(1)}" stroke-dashoffset="${L.toFixed(1)}"><animate attributeName="stroke-dashoffset" from="${L.toFixed(1)}" to="0" dur="${duur.toFixed(3)}s" begin="${b}s" fill="freeze"/></path>`
         +`<path class="sv-glans" d="${st.d}" visibility="hidden"><set attributeName="visibility" to="visible" begin="${e}s" fill="freeze"/><animate attributeName="stroke-dashoffset" from="0" to="-18" dur=".8s" repeatCount="indefinite"/></path></g>`);
-      t+=duur;});});
+      klaar[st.d]=nu+t+duur;t+=duur;});});
+  return klaar;
 }
 function verversSchema(st,aanvr){
   if(!$('#mimic-host svg')||!lay)return;
@@ -3765,7 +3792,7 @@ function verversSchema(st,aanvr){
   });
   /* stroming en wat erbij hoort, alleen waar de PLC het laat zien */
   const K={a:'var(--sv-a)',b:'var(--sv-b)',z:'var(--sv-z)',s:'var(--sv-s)',w:'var(--sv-w)',mix:'var(--sv-mix)'};
-  const ketens=[];const straal={},bellen={},golf={};
+  const ketens=[];const straal={},straalD={},roering={},golf={};
   /* 25-09 (Wessel: "het straaltje loopt al terwijl het water er nog niet is"): stroming alleen als de flowmeter hem meet, niet
      op het klepcommando (niet gemeten is niet nul). Aan de zuigkant de kleur van wat erin gaat; aan de perskant en bij de
      straal de kleur van wat er nú uit de leiding komt (machine.leidingUit, als de PLC het meldt): water blijft blauw tot de
@@ -3778,25 +3805,27 @@ function verversSchema(st,aanvr){
     const bestKleur=loc=>{const kk=PID.kanten.find(x=>x.tussenbak===loc);return kk?K[kk.kant.toLowerCase()]:loc==='LOC-ZB'?K.z:K.s;};
     const alleenWater=bronOpen.length===1&&bronOpen[0].nr===0;
     const kleurBest=bestOpen.length===1?bestKleur(bestOpen[0][0]):K.mix;
+    const kleurVan=naam=>naam.toLowerCase()==='water'?K.w:kleurBest;
     const kleurIn=alleenWater?K.w:kleurBest;
-    const kleurUit=uitLeiding===null?kleurIn:(uitLeiding.toLowerCase()==='water'?K.w:kleurBest);
+    const kleurUit=uitLeiding===null?kleurIn:kleurVan(uitLeiding);
     if(bronOpen.length){const i0=Math.min(...bronOpen.map(b=>b.i));
-      ketens.push({kleur:kleurIn,stukken:[...bronOpen.map(b=>({d:SVR.bron(b.i)})),{d:SVR.zuig(i0)},{d:SVR.pompUit()}]});
-      if(bestOpen.length){const xs=bestOpen.map(([loc])=>svBestX(loc)).filter(x=>x!=null);const stukken=[{d:SVR.pers(Math.min(...xs))}];xs.forEach(x=>stukken.push({d:SVR.drop(x)}));
-        bestOpen.forEach(([loc])=>{const kk=PID.kanten.find(x=>x.tussenbak===loc);const id=kk?BAK_VAN_LOC[loc]:loc==='LOC-ZB'?'ZB':(BAK_VAN_LOC[loc]||'');if(id){straal[id]=kleurUit;golf[id]=golf[id]||'aan';}});
-        ketens.push({kleur:kleurUit,stukken});}}
+      /* één aaneengesloten weg van de bron tot de bak; de perskant en de val in de kleur van wat er uit de leiding komt */
+      const stukken=[...bronOpen.map(b=>({d:SVR.bron(b.i)})),{d:SVR.zuig(i0)},{d:SVR.pompUit()}];
+      if(bestOpen.length){const xs=bestOpen.map(([loc])=>svBestX(loc)).filter(x=>x!=null);const persD=SVR.pers(Math.min(...xs));stukken.push({d:persD,kleur:kleurUit,vast:true});xs.forEach(x=>stukken.push({d:SVR.drop(x),kleur:kleurUit,vast:true}));
+        bestOpen.forEach(([loc])=>{const kk=PID.kanten.find(x=>x.tussenbak===loc);const id=kk?BAK_VAN_LOC[loc]:loc==='LOC-ZB'?'ZB':(BAK_VAN_LOC[loc]||'');const x=svBestX(loc);if(id){straal[id]=kleurUit;golf[id]=golf[id]||'aan';if(x!=null)straalD[id]=SVR.drop(x);}});}
+      ketens.push({kleur:kleurIn,stukken});}
   }
   PID.kanten.forEach(k=>{const z=lay.kanten[k.kant];const p=zetPomp(k.pomp,'ro-'+k.pomp,'');const kl=K[k.kant.toLowerCase()];const tb=BAK_VAN_LOC[k.tussenbak];
     if(v.ok&&p.bd===true){const stukken=[{d:SVR.tankUit(z)},{d:SVR.naarVerdeel(z)}];golf[tb]=golf[tb]||'aan';
-      if(open[k.mengklep]===true){stukken.push({d:SVR.lus(z)});bellen[tb]=z.yIn;golf[tb]='snel';
+      if(open[k.mengklep]===true){stukken.push({d:SVR.lus(z)});roering[tb]={soort:'retour',yIn:z.yIn};golf[tb]='snel';
         const ro=document.getElementById('ro-'+k.pomp);if(ro&&ro.textContent==='in bedrijf')ro.textContent='in bedrijf · rondpompen';}
-      k.werkbakken.forEach(([loc,klep],j)=>{if(open[klep]===true){stukken.push({d:SVR.naarWerk(z,j)});const id=BAK_VAN_LOC[loc];straal[id]=kl;golf[id]=golf[id]||'aan';}});
+      k.werkbakken.forEach(([loc,klep],j)=>{if(open[klep]===true){stukken.push({d:SVR.naarWerk(z,j)});const id=BAK_VAN_LOC[loc];straal[id]=kl;straalD[id]=SVR.naarWerk(z,j);golf[id]=golf[id]||'aan';}});
       ketens.push({kleur:kl,stukken});}});
-  svStromen(ketens);
+  const klaar=svStromen(ketens);
   /* sporenbakken: de roerder draait als de menger aan staat (DO) */
   lay.sporen.forEach((h,i)=>{const id=BAK_VAN_LOC[h.loc]||('SP'+(i+1));if(!h.menger)return;const b=v.ok?doVan(h.menger):null;
-    svRoer(id,b===true);svZet(document.getElementById('rm-'+id),'onb',b===null);if(b===true){bellen[id]=bellen[id]||0;golf[id]='snel';}});
-  bakken.forEach(([,id])=>{svStraal(id,straal[id]||null);svBellen(id,id in bellen,bellen[id]||0);svGolven(id,!!golf[id],golf[id]==='snel');});
+    svRoer(id,b===true);svZet(document.getElementById('rm-'+id),'onb',b===null);if(b===true){roering[id]={soort:'roerder'};golf[id]='snel';}});
+  bakken.forEach(([,id])=>{svStraal(id,straal[id]||null,straalD[id]?klaar[straalD[id]]:0);svRoering(id,roering[id]?roering[id].soort:'',roering[id]?roering[id].yIn:0);svGolven(id,!!golf[id],golf[id]==='snel');});
 }
 
 

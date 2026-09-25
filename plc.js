@@ -292,7 +292,7 @@
     const par = k.par || (k.par = this.latch([])); const hzHoog = par.hzHoog, hzLaag = par.hzLaag;
     switch (k.fase) {
       case 10: {   // AANVRAAG: rekenen en controleren; wacht op de doseerkring
-        if (!this.neemKring(k)) { k.wacht = 'wacht op de doseerkring'; k.meststof = k.wacht; k.tFase = 0; return; }
+        if (!this.neemKring(k)) { k.wacht = 'wacht op de doseerkring'; k.meststof = ''; k.tFase = 0; return; }
         k.wacht = '';
         const r = this.restant[kant];
         if (r && r.bak === k.bak) {   // eerst het restant van de vorige batch afleveren, zonder nieuwe batch [aangenomen]
@@ -314,7 +314,7 @@
             const sb = 'SP' + (s.nr - SPOREN_START); const m = this.mengers[sb]; const L = this.liters(sb, ing);
             if (this.ketens.D.fase > 0 && this.ketens.D.bak === sb) { this.storing(172, 'Batch voor ' + this.bakNaam(k.bak) + ': ' + this.bakNaam(sb) + ' is nodig als bron, maar wordt zelf nog gevuld.', k); return; }
             if (L === null || L < s.doelL + 5) { this.storing(173, 'Batch voor ' + this.bakNaam(k.bak) + ': te weinig in ' + this.bakNaam(sb) + ' (' + (L === null ? 'niveau onbekend' : r1(L) + ' L') + ', nodig ' + r1(s.doelL) + ' L).', k, { check: 'Laat de sporenbak eerst vullen.' }); return; }
-            if (m && m.stand === 'draait') { k.wacht = 'wacht tot de menger van ' + this.bakNaam(sb) + ' stilstaat'; k.meststof = k.wacht; k.tFase = 0; return; }
+            if (m && m.stand === 'draait') { k.wacht = 'wacht tot de menger van ' + this.bakNaam(sb) + ' stilstaat'; k.meststof = ''; k.tFase = 0; return; }
           }
         }
         k.wacht = '';
@@ -330,18 +330,18 @@
       case 20: {   // VOORVULLEN: water + vulklep tussenbak, 50 Hz, tot portie 0 [besluit: geteld op FC 01]
         open(wk.aanzuig, true); open(tbDef.vul, true); pomp(hzHoog); k.geteldL = geteld(); k.doelL = k.porties[0];
         this._pulsBewaking(k, 'voorvullen');
-        if (k.geteldL >= k.doelL) { k.geteldTotaal += k.geteldL; k.fase = 30; k.tFase = 0; k.lekBegin = this.pulsTeller; k.lekNiveau = null; k.lekStilS = 0; k.meststof = 'lektest'; k.doelL = 0; k.geteldL = 0; }
+        if (k.geteldL >= k.doelL) { k.geteldTotaal += k.geteldL; k.fase = 60; k.tFase = 0; k.doelL = 0; k.geteldL = 0; }   // naar VOLGENDE: n := 1, dan de lektest en meststof 1
         return;
       }
-      case 30: {   // LEKTEST: alle kleppen dicht, de pomp draait de hele lektesttijd door; dan moet FC 01 stilstaan en mag het niveau niet verlopen zijn [doc §8.2, besluit 21-09]
+      case 30: {   // LEKTEST vóór elke meststof: alle kleppen dicht, de pomp draait de hele lektesttijd door; dan moet FC 01 stilstaan en mag het niveau niet verlopen zijn [doc §8.2, §8.1 "geen aanzuigklep open zonder geslaagde lektest", schets C7/C20; besluit 21-09]
         pomp(hzLaag);
         this.lekNiveauMeten(k, tb, ing);
         if (k.tFase >= T_KLEP + k.lekS) {
           const tol = par.tolLek; const verloop = this.lekVerloop(k); const na = Math.round(this.pulsTeller - k.lekBegin);
           if (this.pulsStilS < T_STIL) { this.storing(131, 'Lektest keten ' + kant + ' mislukt: de flowmeter geeft na ' + k.lekS + ' s nog pulsen.', k, { cause: 'Ergens is een klep niet dicht; met een draaiende pomp erachter is dat meteen zichtbaar.', check: 'Controleer de aanzuigkleppen en de vulkleppen. Geen automatische herhaling.' }); return; }
           if (tol !== null && Math.abs(verloop) > tol) { this.storing(132, 'Lektest keten ' + kant + ': het niveau van tussenbak ' + kant + ' verliep ' + r1(verloop) + ' L in ' + k.lekS + ' s (toegestaan ' + tol + ' L).', k, { cause: 'Zakken is weglekken; stijgen is een klep die niet dicht is.', check: 'Controleer de kleppen rond tussenbak ' + kant + '.' }); return; }
-          this.melding('', 'info', 'svc', 'Lektest keten ' + kant + ' geslaagd: ' + k.lekS + ' s met de pomp op ' + hzLaag + ' Hz tegen dichte kleppen, ' + na + ' pulsen naloop, niveauverloop ' + r1(verloop) + ' L.');
-          k.fase = 60; k.tFase = 0; k.n = 0; return;   // naar VOLGENDE: n := 1, dan MESTSTOF 1
+          this.melding('', 'info', 'svc', 'Lektest keten ' + kant + ' vóór ' + this.stofNaam(k.stoffen[k.n - 1].nr) + ' geslaagd: ' + k.lekS + ' s met de pomp op ' + hzLaag + ' Hz tegen dichte kleppen, ' + na + ' pulsen naloop, niveauverloop ' + r1(verloop) + ' L.');
+          k.fase = 40; k.tFase = 0; return;   // de aanzuigklep mag open
         }
         return;
       }
@@ -351,8 +351,8 @@
         k.meststof = this.stofNaam(s.nr); k.doelL = s.doelL; k.geteldL = 0;
         if (s.nr > SPOREN_START) {   // uit een sporenbak doseren wacht tot zijn menger stilstaat [besluit 22-09 §5, doc §8.1]
           const m = this.mengers['SP' + (s.nr - SPOREN_START)];
-          if (m && m.stand === 'draait') { k.wacht = 'wacht tot de menger van ' + this.bakNaam('SP' + (s.nr - SPOREN_START)) + ' stilstaat'; k.meststof = k.wacht; k.tFase = 0; open(tbDef.vul, true); mengpompAan(); return; }
-          k.wacht = ''; k.meststof = this.stofNaam(s.nr);
+          if (m && m.stand === 'draait') { k.wacht = 'wacht tot de menger van ' + this.bakNaam('SP' + (s.nr - SPOREN_START)) + ' stilstaat'; k.tFase = 0; open(tbDef.vul, true); mengpompAan(); return; }
+          k.wacht = '';
         }
         open(bd.aanzuig, true); open(tbDef.vul, true); mengpompAan();
         if (k.tFase >= T_KLEP) { k.pulsBegin = this.pulsTeller; k.tDosering = 0; const volFijn = par.volFijn[s.nr] || 0; k.fase = s.doelL <= volFijn ? 44 : 42; k.tFase = 0; }
@@ -397,9 +397,13 @@
         if (k.tFase >= par.tijdMengen) { k.fase = 60; k.tFase = 0; }
         return;
       }
-      case 60: {   // VOLGENDE: n := n + 1
+      case 60: {   // VOLGENDE: n := n + 1; vóór elke meststof eerst de lektest, met de lektesttijd van de stof die net door de leiding ging
         k.n += 1; mengpompAan();
-        if (k.n <= k.stoffen.length) { k.fase = 40; k.tFase = 0; }
+        if (k.n <= k.stoffen.length) {
+          const vorige = k.n > 1 ? k.stoffen[k.n - 2].nr : k.stoffen[0].nr; const bc = this.bronCfg(vorige);
+          k.lekS = bc && isFinite(Number(bc.lektestS)) ? Number(bc.lektestS) : 30;
+          k.fase = 30; k.tFase = 0; k.lekBegin = this.pulsTeller; k.lekNiveau = null; k.lekStilS = 0; k.meststof = 'lektest'; k.doelL = 0; k.geteldL = 0;
+        }
         else { const s = k.stoffen[k.stoffen.length - 1]; const spoel = s ? (par.spoel[s.nr] || 0) : 0;
           k.fase = 70; k.tFase = 0; k.pulsBegin = this.pulsTeller; k.doelL = Math.max(0, k.porties[k.porties.length - 1] - spoel); k.geteldL = 0; k.meststof = 'aanvulwater'; }
         return;
@@ -423,8 +427,8 @@
         const ander = this.ketens[kant === 'A' ? 'B' : 'A'];
         const anderBouwt = ander.fase >= 10 && ander.fase <= 75;
         const anderVraagt = this.aanvragen.some(b => b[0] === (kant === 'A' ? 'B' : 'A'));
-        if (k.klepDichtT === 0 && (anderBouwt || anderVraagt) && k.tRest < 1800) { k.wacht = 'wacht op keten ' + (kant === 'A' ? 'B' : 'A'); k.meststof = k.wacht; k.tRest += dt; k.tFase = 0; mengpompAan(); return; }
-        k.wacht = ''; k.tRest = 0; k.meststof = 'afleveren';
+        if (k.klepDichtT === 0 && (anderBouwt || anderVraagt) && k.tRest < 1800) { k.wacht = 'wacht op keten ' + (kant === 'A' ? 'B' : 'A'); k.tRest += dt; k.tFase = 0; mengpompAan(); return; }
+        k.wacht = ''; k.tRest = 0;
         k.klepDichtT += dt;
         const vol = this.schakelaar(k.bak, null, ing) === true;
         if (k.klepDichtT < T_KLEP) { /* mengklep dicht, pomp uit, klep wisselen zonder druk [doc §8.1] */ return; }
@@ -506,7 +510,7 @@
     if (vol && k.fase >= 20 && k.fase <= 50) { this.storing(152, this.bakNaam(bak) + ' meldt vol tijdens het vullen; de beurt is gestopt.', k, { check: 'Controleer de niveauschakelaar en de inhoud van de bak in de configuratie.' }); return; }
     switch (k.fase) {
       case 10: {   // AANVRAAG: wacht tot de doseerkring vrij is; rekenen en controleren
-        if (!this.neemKring(k)) { k.wacht = 'wacht op de doseerkring'; k.meststof = k.wacht; k.tFase = 0; return; }
+        if (!this.neemKring(k)) { k.wacht = 'wacht op de doseerkring'; k.meststof = ''; k.tFase = 0; return; }
         k.wacht = '';
         const cfg = this.bron.configuratie(); const rec = (this.bron.recepten() || {})[bak] || []; const cap = this.inhoud(bak); const L = this.liters(bak, ing);
         if (!cfg || cfg.geldig === false || !cap || L === null) { this.storing(175, 'Vulling van ' + this.bakNaam(bak) + ' kan niet starten: configuratie of niveau onbekend.', k); return; }
