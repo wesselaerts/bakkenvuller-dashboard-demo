@@ -2179,9 +2179,9 @@ body.rb-sleept,body.rb-sleept *{cursor:grabbing!important;user-select:none;-webk
 
 <div class="toast" id="toast"></div>
 
-<script src="machine.js?v=202609251445"></script>
-<script src="plc.js?v=202609251445"></script>
-<script src="nabootsing.js?v=202609251445"></script>
+<script src="machine.js?v=202609251509"></script>
+<script src="plc.js?v=202609251509"></script>
+<script src="nabootsing.js?v=202609251509"></script>
 <script>
 "use strict";
 /* ==================================================================
@@ -3766,17 +3766,25 @@ function verversSchema(st,aanvr){
   /* stroming en wat erbij hoort, alleen waar de PLC het laat zien */
   const K={a:'var(--sv-a)',b:'var(--sv-b)',z:'var(--sv-z)',s:'var(--sv-s)',w:'var(--sv-w)',mix:'var(--sv-mix)'};
   const ketens=[];const straal={},bellen={},golf={};
-  if(v.ok&&vp.bd===true){
+  /* 25-09 (Wessel: "het straaltje loopt al terwijl het water er nog niet is"): stroming alleen als de flowmeter hem meet, niet
+     op het klepcommando (niet gemeten is niet nul). Aan de zuigkant de kleur van wat erin gaat; aan de perskant en bij de
+     straal de kleur van wat er nú uit de leiding komt (machine.leidingUit, als de PLC het meldt): water blijft blauw tot de
+     meststof de bak bereikt, en na het omschakelen op water blijft de meststof nog even doorlopen. */
+  const stroomt=!!(fl&&fl.q!=='bad'&&isFinite(Number(fl.v))&&Number(fl.v)>0);
+  const uitLeiding=st&&typeof st.leidingUit==='string'&&st.leidingUit?st.leidingUit:null;
+  if(v.ok&&vp.bd===true&&stroomt){
     const bronOpen=lay.bronnen.map((nr,i)=>({nr,i,k:bronKlep(nr)})).filter(b=>b.k&&open[b.k]===true);
     const bestOpen=svBestemmingen().filter(([,k])=>open[k]===true);
     const bestKleur=loc=>{const kk=PID.kanten.find(x=>x.tussenbak===loc);return kk?K[kk.kant.toLowerCase()]:loc==='LOC-ZB'?K.z:K.s;};
     const alleenWater=bronOpen.length===1&&bronOpen[0].nr===0;
-    const kleur=alleenWater?K.w:(bestOpen.length===1?bestKleur(bestOpen[0][0]):K.mix);
+    const kleurBest=bestOpen.length===1?bestKleur(bestOpen[0][0]):K.mix;
+    const kleurIn=alleenWater?K.w:kleurBest;
+    const kleurUit=uitLeiding===null?kleurIn:(uitLeiding.toLowerCase()==='water'?K.w:kleurBest);
     if(bronOpen.length){const i0=Math.min(...bronOpen.map(b=>b.i));
-      const stukken=[...bronOpen.map(b=>({d:SVR.bron(b.i)})),{d:SVR.zuig(i0)},{d:SVR.pompUit()}];
-      if(bestOpen.length){const xs=bestOpen.map(([loc])=>svBestX(loc)).filter(x=>x!=null);stukken.push({d:SVR.pers(Math.min(...xs))});xs.forEach(x=>stukken.push({d:SVR.drop(x)}));
-        bestOpen.forEach(([loc])=>{const kk=PID.kanten.find(x=>x.tussenbak===loc);const id=kk?BAK_VAN_LOC[loc]:loc==='LOC-ZB'?'ZB':(BAK_VAN_LOC[loc]||'');if(id){straal[id]=kleur;golf[id]=golf[id]||'aan';}});}
-      ketens.push({kleur,stukken});}
+      ketens.push({kleur:kleurIn,stukken:[...bronOpen.map(b=>({d:SVR.bron(b.i)})),{d:SVR.zuig(i0)},{d:SVR.pompUit()}]});
+      if(bestOpen.length){const xs=bestOpen.map(([loc])=>svBestX(loc)).filter(x=>x!=null);const stukken=[{d:SVR.pers(Math.min(...xs))}];xs.forEach(x=>stukken.push({d:SVR.drop(x)}));
+        bestOpen.forEach(([loc])=>{const kk=PID.kanten.find(x=>x.tussenbak===loc);const id=kk?BAK_VAN_LOC[loc]:loc==='LOC-ZB'?'ZB':(BAK_VAN_LOC[loc]||'');if(id){straal[id]=kleurUit;golf[id]=golf[id]||'aan';}});
+        ketens.push({kleur:kleurUit,stukken});}}
   }
   PID.kanten.forEach(k=>{const z=lay.kanten[k.kant];const p=zetPomp(k.pomp,'ro-'+k.pomp,'');const kl=K[k.kant.toLowerCase()];const tb=BAK_VAN_LOC[k.tussenbak];
     if(v.ok&&p.bd===true){const stukken=[{d:SVR.tankUit(z)},{d:SVR.naarVerdeel(z)}];golf[tb]=golf[tb]||'aan';
