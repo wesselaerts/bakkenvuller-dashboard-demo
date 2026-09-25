@@ -8,6 +8,13 @@
    /events, /command/..., inloggen, adviesbladen) en beantwoordt ze zelf,
    met de testgegevens uit stand.json (hieronder ingebouwd).
 
+   - Sinds 25-09 (middag) draait er een echte machine achter: machine.js
+     (het rekenmodel van gereedschap\machine-nabootsing\model.py, in
+     JavaScript) en plc.js (de stappenketens van het ontwerp). Bakken
+     lopen vol en leeg, de flowmeter telt, beurten lopen door; wat het
+     scherm laat zien komt van die twee, niet meer uit vaste testwaarden.
+     stand.json levert alleen nog de begintoestand (niveaus, instellingen,
+     configuratie, kalibratie, recepten).
    - Het is een nabootsing: het blok bridge zegt "bron": "nabootsing" en
      het dashboard toont de paarse balk. Er is geen PLC en geen netwerk.
    - Wat een collega wijzigt, blijft in zijn eigen browser (localStorage);
@@ -20,8 +27,8 @@
    ================================================================== */
 (function () {
   'use strict';
-  const STAND = /*@STAND@*/{"machine":{"modus":"AUTO","fout":0,"doseerkring":"A","ketens":{"A":{"fase":42,"meststof":"Kali 50%","doelL":208.0,"geteldL":131.4}}},"kanalen":{"SE6-1-5":{"v":true},"SE6-2-1":{"v":true},"SE6-1-15":{"v":true},"SE6-1-16":{"v":true},"SE6-2-6":{"v":true},"SE6-2-2":{"v":true},"SE4-2-1":{"v":1287340},"SE4-3-1":{"v":30000},"SE6-5-2":{"v":32770}},"bus":{},"waarden":{"BM-FCS1":{"v":true},"HM-FCS1":{"v":true},"BM-VP02":{"v":true},"BM-MTBA":{"v":true},"FC01":{"v":62.4,"u":"l/min"},"FCS1":{"v":50,"u":"Hz"},"LT-TBA":{"v":310,"u":"L"},"LT-TBB":{"v":0,"u":"L","q":"bad"},"LT-A1":{"v":612,"u":"L"},"LT-A2":{"v":455,"u":"L"},"LT-A3":{"v":380,"u":"L"},"LT-B1":{"v":590,"u":"L"},"LT-B2":{"v":470,"u":"L"},"LT-B3":{"v":395,"u":"L"},"LT-ZB":{"v":140,"u":"L"},"LT-SP1":{"v":96,"u":"L"},"LT-SP2":{"v":88,"u":"L"},"LT-SP3":{"v":101,"u":"L"}},"instellingen":{"P_VolSpoel":{"v":30,"u":"L"},"P_VolFijn":{"v":2.0,"u":"L"},"P_TijdPomp":{"v":90,"u":"s"},"P_VolNaloop":{"v":0.35,"u":"L"},"P_MinGift":{"v":0.5,"u":"L"},"P_TijdMengen":{"v":30,"u":"s"},"P_TijdMengenEind":{"v":120,"u":"s"},"P_TolLektestNiveau":{"v":1.0,"u":"L"},"P_NivStart":{"A1":{"v":30,"u":"%"},"A2":{"v":30,"u":"%"},"A3":{"v":40,"u":"%"},"B1":{"v":30,"u":"%"},"B2":{"v":30,"u":"%"},"B3":{"v":40,"u":"%"},"ZB":{"v":30,"u":"%"},"SP1":{"v":35,"u":"%"},"SP2":{"v":30,"u":"%"},"SP3":{"v":30,"u":"%"}},"P_NivRoerderAan":{"SP1":{"v":25,"u":"%"},"SP2":{"v":60,"u":"%"},"SP3":{"v":25,"u":"%"}},"P_TijdRoerderAan":{"SP1":{"v":2,"u":"min"},"SP2":{"v":10,"u":"min"},"SP3":{"v":5,"u":"min"}},"P_TijdRoerderRust":{"SP1":{"v":3,"u":"min"},"SP2":{"v":50,"u":"min"},"SP3":{"v":55,"u":"min"}},"P_TijdRoerderNaVullen":{"SP1":{"v":15,"u":"min"},"SP2":{"v":20,"u":"min"},"SP3":{"v":15,"u":"min"}}},"configuratie":{"versie":1,"aantalMeststof":10,"aantalSporenbak":3,"zuurbakGroep":"B","volReferentie":1000,"volWerkbak":{"A1":1000,"A2":1000,"A3":1000,"B1":1000,"B2":1000,"B3":1000},"volTussenbak":{"TBA":1000,"TBB":1000},"volBatch":800,"volZuurbak":500,"volSporenbak":[150,150,150],"bronnen":[{"nr":1,"naam":"Salpeterzuur","groep":"AB","lektestS":20},{"nr":2,"naam":"Fosforzuur","groep":"B","lektestS":30},{"nr":3,"naam":"Ammoniumnitraat","groep":"AB","lektestS":20},{"nr":4,"naam":"Kali 50%","groep":"AB","lektestS":25},{"nr":5,"naam":"Kalksalpeter","groep":"B","lektestS":20},{"nr":6,"naam":"CalciumChloride","groep":"B","lektestS":25},{"nr":7,"naam":"Bitterzout","groep":"AB","lektestS":20},{"nr":8,"naam":"Zwavelzuur","groep":"B","lektestS":30},{"nr":9,"naam":"Optifos","groep":"A","lektestS":20},{"nr":10,"naam":"IJzer","groep":"AB","lektestS":20},{"nr":21,"naam":"Sporen 1","groep":"AB","lektestS":25},{"nr":22,"naam":"Sporen 2","groep":"B","lektestS":25},{"nr":23,"naam":"Sporen 3","groep":"A","lektestS":25}]},"kalibratie":{"versie":1,"pulsGewicht":0.003968,"pulsDatum":20260921,"niveau":{"LT-TBA":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-TBB":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-A1":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-A2":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-A3":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-B1":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-B2":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-B3":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":1000,"datum":20260921},"LT-ZB":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":500,"datum":20260921},"LT-SP1":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":150,"datum":20260921},"LT-SP2":{"rawNul":3000,"literNul":0,"rawTop":27000,"literTop":150,"datum":20260921}}},"recepten":{"A1":[30,0,90,260,0,0,80,0,40,0,0,0,0,0,0,0,0,0,0,0,10,0,0],"A2":[25,0,80,220,0,0,70,0,35,0,0,0,0,0,0,0,0,0,0,0,10,0,0],"A3":[20,0,0,200,0,0,60,0,30,0,0,0,0,0,0,0,0,0,0,0,0,0,8],"B1":[0,0,0,0,300,40,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,10,0],"B2":[0,0,0,0,280,35,0,0,0,12,0,0,0,0,0,0,0,0,0,0,0,10,0],"B3":[0,20,0,0,260,0,0,0,0,12,0,0,0,0,0,0,0,0,0,0,0,8,0],"ZB":[3.0,1.0,0,0,0,0,0,2.0,0,0],"SP1":[0,0,0,0,0,0,0,0,0,4.0],"SP2":[0,0,0,0,0,0,2.0,0,0,0],"SP3":[0,0,0,0,0,0,0,0,1.0,0]},"receptopbouw":{"A1":{"versie":1,"stappen":[1,3,4,7,9,21],"water":[150,null,null,null,null,null,null],"standaard":{"1":30,"3":90,"4":250,"7":80,"9":40,"21":10}},"A2":{"versie":1,"stappen":[1,3,4,7,9,21],"water":[null,null,null,null,null,null,null],"standaard":{"1":25,"3":80,"4":220,"7":70,"9":35,"21":10}},"A3":{"versie":1,"stappen":[1,4,7,9,23],"water":[null,null,null,null,null,null],"standaard":{"1":20,"4":200,"7":60,"9":30,"23":8}},"B1":{"versie":1,"stappen":[5,6,10,22],"water":[100,null,null,null,null],"standaard":{"5":300,"6":40,"10":15,"22":10}},"B2":{"versie":1,"stappen":[5,6,10,22],"water":[null,null,null,null,null],"standaard":{"5":280,"6":35,"10":12,"22":10}},"B3":{"versie":1,"stappen":[2,5,10,22],"water":[null,null,null,null,null],"standaard":{"2":20,"5":260,"10":12,"22":8}}},"events":[{"id":"nb-1","code":"W-TEST","sev":"warn","aud":"op","text":"Testmelding uit de nabootsing","source":"nabootsing","cause":"Alleen om het meldingenscherm te testen.","check":"Niets: dit is geen echte machine.","minutenGeleden":5}]}/*@/STAND@*/;
-  const GEMAAKT = /*@GEMAAKT@*/"2026-09-25"/*@/GEMAAKT@*/;
+  const STAND = /*@STAND@*/{"machine":{"modus":"AUTO","fout":0,"doseerkring":"A","ketens":{"A":{"fase":42,"meststof":"Kali 50%","doelL":208.0,"geteldL":131.4}}},"kanalen":{"SE6-1-5":{"v":true},"SE6-2-1":{"v":true},"SE6-1-15":{"v":true},"SE6-1-16":{"v":true},"SE6-2-6":{"v":true},"SE6-2-2":{"v":true},"SE4-2-1":{"v":1287340},"SE4-3-1":{"v":30000},"SE6-5-2":{"v":32770}},"bus":{},"waarden":{"BM-FCS1":{"v":true},"HM-FCS1":{"v":true},"BM-VP02":{"v":true},"BM-MTBA":{"v":true},"FC01":{"v":62.4,"u":"l/min"},"FCS1":{"v":50,"u":"Hz"},"LT-TBA":{"v":310,"u":"L"},"LT-TBB":{"v":0,"u":"L","q":"bad"},"LT-A1":{"v":612,"u":"L"},"LT-A2":{"v":455,"u":"L"},"LT-A3":{"v":295,"u":"L"},"LT-B1":{"v":590,"u":"L"},"LT-B2":{"v":470,"u":"L"},"LT-B3":{"v":290,"u":"L"},"LT-ZB":{"v":140,"u":"L"},"LT-SP1":{"v":96,"u":"L"},"LT-SP2":{"v":88,"u":"L"},"LT-SP3":{"v":101,"u":"L"}},"instellingen":{"P_VolSpoel":{"v":30,"u":"L"},"P_VolFijn":{"v":2.0,"u":"L"},"P_TijdPomp":{"v":90,"u":"s"},"P_VolNaloop":{"v":0.35,"u":"L"},"P_MinGift":{"v":0.5,"u":"L"},"P_TijdMengen":{"v":30,"u":"s"},"P_TijdMengenEind":{"v":180,"u":"s"},"P_TolLektestNiveau":{"v":5.0,"u":"L"},"P_NivStart":{"A1":{"v":30,"u":"%"},"A2":{"v":30,"u":"%"},"A3":{"v":30,"u":"%"},"B1":{"v":30,"u":"%"},"B2":{"v":30,"u":"%"},"B3":{"v":30,"u":"%"},"ZB":{"v":30,"u":"%"},"SP1":{"v":35,"u":"%"},"SP2":{"v":30,"u":"%"},"SP3":{"v":30,"u":"%"}},"P_NivRoerderAan":{"SP1":{"v":25,"u":"%"},"SP2":{"v":60,"u":"%"},"SP3":{"v":25,"u":"%"}},"P_TijdRoerderAan":{"SP1":{"v":2,"u":"min"},"SP2":{"v":10,"u":"min"},"SP3":{"v":5,"u":"min"}},"P_TijdRoerderRust":{"SP1":{"v":3,"u":"min"},"SP2":{"v":50,"u":"min"},"SP3":{"v":55,"u":"min"}},"P_TijdRoerderNaVullen":{"SP1":{"v":15,"u":"min"},"SP2":{"v":20,"u":"min"},"SP3":{"v":15,"u":"min"}}},"configuratie":{"versie":1,"aantalMeststof":10,"aantalSporenbak":3,"zuurbakGroep":"B","volReferentie":1000,"volWerkbak":{"A1":1000,"A2":1000,"A3":1000,"B1":1000,"B2":1000,"B3":1000},"volTussenbak":{"TBA":1000,"TBB":1000},"volBatch":700,"volZuurbak":500,"volSporenbak":[150,150,150],"bronnen":[{"nr":1,"naam":"Salpeterzuur","groep":"AB","lektestS":20},{"nr":2,"naam":"Fosforzuur","groep":"B","lektestS":30},{"nr":3,"naam":"Ammoniumnitraat","groep":"AB","lektestS":20},{"nr":4,"naam":"Kali 50%","groep":"AB","lektestS":25},{"nr":5,"naam":"Kalksalpeter","groep":"B","lektestS":20},{"nr":6,"naam":"CalciumChloride","groep":"B","lektestS":25},{"nr":7,"naam":"Bitterzout","groep":"AB","lektestS":20},{"nr":8,"naam":"Zwavelzuur","groep":"B","lektestS":30},{"nr":9,"naam":"Optifos","groep":"A","lektestS":20},{"nr":10,"naam":"IJzer","groep":"AB","lektestS":20},{"nr":21,"naam":"Sporen 1","groep":"AB","lektestS":25},{"nr":22,"naam":"Sporen 2","groep":"B","lektestS":25},{"nr":23,"naam":"Sporen 3","groep":"A","lektestS":25}]},"kalibratie":{"versie":1,"pulsGewicht":0.003968,"pulsDatum":20260921,"niveau":{"LT-TBA":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-TBB":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-A1":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-A2":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-A3":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-B1":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-B2":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-B3":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":1000,"datum":20260921},"LT-ZB":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":500,"datum":20260921},"LT-SP1":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":150,"datum":20260921},"LT-SP2":{"rawNul":0,"literNul":0,"rawTop":30000,"literTop":150,"datum":20260921}}},"recepten":{"A1":[30,0,90,260,0,0,80,0,40,0,0,0,0,0,0,0,0,0,0,0,10,0,0],"A2":[25,0,80,220,0,0,70,0,35,0,0,0,0,0,0,0,0,0,0,0,10,0,0],"A3":[20,0,0,200,0,0,60,0,30,0,0,0,0,0,0,0,0,0,0,0,8,0,0],"B1":[0,0,0,0,300,40,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,10,0],"B2":[0,0,0,0,280,35,0,0,0,12,0,0,0,0,0,0,0,0,0,0,0,10,0],"B3":[0,20,0,0,260,0,0,0,0,12,0,0,0,0,0,0,0,0,0,0,0,8,0],"ZB":[30,10,0,0,0,0,0,20,0,0],"SP1":[0,0,0,0,0,0,0,0,0,40],"SP2":[0,0,0,0,0,0,25,0,0,0],"SP3":[0,0,0,0,0,0,0,0,20,0]},"receptopbouw":{"A1":{"versie":1,"stappen":[1,3,4,7,9,21],"water":[150,null,null,null,null,null,null],"standaard":{"1":30,"3":90,"4":250,"7":80,"9":40,"21":10}},"A2":{"versie":1,"stappen":[1,3,4,7,9,21],"water":[null,null,null,null,null,null,null],"standaard":{"1":25,"3":80,"4":220,"7":70,"9":35,"21":10}},"A3":{"versie":1,"stappen":[1,4,7,9,21],"water":[null,null,null,null,null,null],"standaard":{"1":20,"4":200,"7":60,"9":30,"21":8}},"B1":{"versie":1,"stappen":[5,6,10,22],"water":[100,null,null,null,null],"standaard":{"5":300,"6":40,"10":15,"22":10}},"B2":{"versie":1,"stappen":[5,6,10,22],"water":[null,null,null,null,null],"standaard":{"5":280,"6":35,"10":12,"22":10}},"B3":{"versie":1,"stappen":[2,5,10,22],"water":[null,null,null,null,null],"standaard":{"2":20,"5":260,"10":12,"22":8}}},"events":[{"id":"nb-1","code":"W-TEST","sev":"warn","aud":"op","text":"Testmelding uit de nabootsing","source":"nabootsing","cause":"Alleen om het meldingenscherm te testen.","check":"Niets: dit is geen echte machine.","minutenGeleden":5}]}/*@/STAND@*/;
+  const GEMAAKT = /*@GEMAAKT@*/"2026-09-25 14:45"/*@/GEMAAKT@*/;
   const DEMO_CODE = '0000';
   const SPOREN_START = 20;
   const WERKBAKKEN = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'];
@@ -38,7 +45,6 @@
   const PER_BRON = ['P_VolSpoel', 'P_VolFijn', 'P_TijdPomp', 'P_VolNaloop'];
   const BATCH_MIN = 100;
   const PULS_ONTWERP = 1 / 252;
-  const RUW_NUL = 3000, RUW_BEREIK = 24000;
   const NIVEAUS = ['bediening', 'service', 'configuratie'];
   const RANG = { bediening: 0, service: 1, configuratie: 2 };
   const MIN_LENGTE = { bediening: 4, service: 6, configuratie: 6 };
@@ -47,7 +53,6 @@
   const NODIG = { '/command/instelling': 'service', '/command/recept': 'bediening', '/command/receptopbouw': 'service',
     '/command/configuratie': 'configuratie', '/command/kalibratie': 'service' };
   const ADVIES_MAX_BESTAND = 8 * 1024 * 1024, ADVIES_MAX_TOTAAL = 50 * 1024 * 1024;
-  const START = Date.now();
   const SLEUTEL = 'bv-deel-stand', SLEUTEL_SESSIE = 'bv-deel-sessie';
 
   /* ---------------- de machine: uit MACHINE in de pagina, bij het eerste gebruik ---------------- */
@@ -103,10 +108,69 @@
     return null;
   }
   const S = laad() || Object.assign(vers(), { gemaakt: GEMAAKT });
-  function bewaar() { try { localStorage.setItem(SLEUTEL, JSON.stringify(S)); } catch (_) { } }
+  let insCache = null, cfgCache = null;   // de PLC vraagt instellingen en configuratie tientallen keren per scan: één kopie per wijziging
+  function bewaar() { insCache = null; cfgCache = null; if (gestopt) return; try { localStorage.setItem(SLEUTEL, JSON.stringify(S)); } catch (_) { } }
   const ADVIES = {};          // bak -> [{id, naam, grootte, datum, niveau, blob}], nieuwste eerst; alleen in het geheugen
   const POGINGEN = {};        // niveau -> {fout, tot}
   const blobUrls = {};
+
+  /* ---------------- de machine en de PLC: machine.js (het rekenmodel) en plc.js (de stappenketens) ---------------- */
+  const DT = 0.05;                 // s per rekenstap; de PLC-nabootsing scant elke stap (de echte PLC elke 10 ms)
+  const TIK_MS = 200;              // hoe vaak de browser rekent
+  const TEMPOS = [1, 5, 20];       // sneller kijken: dezelfde fysica, meer stappen per seconde
+  const DEMO_VERBRUIK = { werkbak: 3.0, zuurbak: 0.3 };   // l/min: wat de kas uit de bakken haalt [aangenomen, alleen voor deze demo]
+  let DEF = null, ENGINE = null, PLC = null;   // komen er zodra MACHINE bestaat: het dashboardscript laadt ná dit bestand
+  const BRON = {   // wat de PLC uit zijn geheugen haalt: hier uit de nabootsing van de brug
+    instellingen: () => insCache || (insCache = instellingenNu()),
+    configuratie: () => cfgCache || (cfgCache = S.CONFIG ? Object.assign({}, S.CONFIG, { geldig: toetsConfig(S.CONFIG) === null }) : null),
+    kalibratie: () => S.KAL, recepten: () => receptenNu(), receptopbouw: () => S.RECEPTOPBOUW,
+    reken: bak => { const rb = (S.RECEPTOPBOUW || {})[bak]; if (!rb || !Array.isArray(rb.stappen)) return null; return rekenRecept(rb.stappen, rb.water || [], telerWaarden(receptenNu(), bak, rb.stappen), matenNu(bak)); },
+    pulsGewicht: () => pulsGewicht(S.KAL), hzNaarRuw: hz => ENGINE.hzNaarRuw(hz), nuIso: () => nu()
+  };
+  function sim() {   // de machine en de PLC, gebouwd bij het eerste gebruik
+    if (PLC) return PLC;
+    if (typeof MACHINE === 'undefined') throw new Error('nabootsing: MACHINE bestaat nog niet');
+    DEF = BvMachine.definitie(MACHINE);
+    if (DEF.fouten.length) console.warn('nabootsing: de machinedefinitie heeft gaten', DEF.fouten);
+    ENGINE = new BvMachine.Model(DEF, null, 7);
+    PLC = new BvPlc.Plc(DEF, BRON);
+    if (!simHerstel()) simBegin();
+    PLC.auto = !S.rust;
+    return PLC;
+  }
+  let tempo = 1, laatsteTik = 0, laatstBewaard = 0;
+  function bakIdVan(loc) {   // LOC-A1 → A1, LOC-TBA → TBA, LOC-ZB → ZB, de s-de sporentank → SPs
+    const b = DEF.bakken[loc]; if (!b) return null;
+    if (b.soort === 'werkbak') return b.naam.trim().split(/\s+/).pop();
+    if (b.soort === 'tussenbak') return 'TB' + b.kant;
+    if (b.soort === 'zuurbak') return 'ZB';
+    if (b.soort === 'sporen') { const l = Object.values(DEF.bakken).filter(x => x.soort === 'sporen').sort((x, y) => x.volgorde - y.volgorde); return 'SP' + (l.indexOf(b) + 1); }
+    return null;
+  }
+  function simBegin() {   // de begintoestand: de niveaus uit stand.json, de tussenbakken leeg, de kas verbruikt
+    const w = STAND.waarden || {};
+    Object.keys(ENGINE.bakken).forEach(loc => {
+      const b = ENGINE.bakken[loc]; const bak = bakIdVan(loc); if (!bak) return;
+      if (b.soort === 'tussenbak') { b.zetVolume(0); return; }
+      const x = w['LT-' + bak]; const L = x && typeof x === 'object' ? Number(x.v) : NaN; if (isFinite(L)) b.zetVolume(L);
+      if (b.soort === 'werkbak') b.verbruikLpm = DEMO_VERBRUIK.werkbak; if (b.soort === 'zuurbak') b.verbruikLpm = DEMO_VERBRUIK.zuurbak;
+    });
+    ENGINE._rekenIngangen(0);
+  }
+  function simHerstel() { const s = S.sim; if (s && s.engine && s.plc && ENGINE.herstel(s.engine) && PLC.herstel(s.plc)) { tempo = TEMPOS.includes(s.tempo) ? s.tempo : 1; return true; } return false; }
+  function simBewaar() { if (!PLC) return; S.sim = { engine: ENGINE.bewaar(), plc: PLC.bewaar(), tempo }; bewaar(); }
+  function simTik() {
+    if (typeof MACHINE === 'undefined' || gestopt) return;
+    sim();
+    const nuMs = Date.now(); if (!laatsteTik) laatsteTik = nuMs;
+    const dtEcht = Math.min(2.0, (nuMs - laatsteTik) / 1000); laatsteTik = nuMs;   // ook als het tabblad even op de achtergrond stond, hoogstens 2 s inhalen
+    const stappen = Math.min(800, Math.round(dtEcht * tempo / DT));
+    for (let i = 0; i < stappen; i++) { PLC.scan(DT, ENGINE.ingangen); ENGINE.zetUitgangen(PLC.uitgangen); ENGINE.step(DT); }
+    if (nuMs - laatstBewaard > 5000) { laatstBewaard = nuMs; simBewaar(); }
+    if (typeof tekenKnoppen === 'function') tekenKnoppen();
+  }
+  function zetTempo(t) { tempo = TEMPOS.includes(t) ? t : 1; simBewaar(); tekenKnoppen(true); }
+  setInterval(simTik, TIK_MS);
 
   /* ---------------- de configuratie ---------------- */
   function actief(c) {
@@ -283,69 +347,33 @@
     if (WERKBAKKEN.includes(bak) || bak === 'ZB') return true;
     const m = /^SP([1-5])$/.exec(bak || ''); return !!m && S.CONFIG !== null && actief(S.CONFIG).includes(SPOREN_START + Number(m[1]));
   }
-  function niveauPct(s, bak) {
-    const w = s.waarden['LT-' + bak]; if (!isObj(w) || w.q === 'bad') return null;
-    const L = getal(w); const cap = S.CONFIG !== null ? inhoudVan(S.CONFIG, bak) : null;
-    return L !== null && cap ? L / cap * 100 : null;
-  }
-  function vulEnMengers(s, klem) {
-    const ins = s.instellingen; const m = machine();
-    const w = (naam, bak) => { const x = ins[naam]; return isObj(x) && !('v' in x) ? getal(x[bak]) : null; };
-    if (!('aanvragen' in s.machine)) s.machine.aanvragen = m.vulBakken.filter(b => inGebruik(b) && niveauPct(s, b) !== null && w('P_NivStart', b) !== null && niveauPct(s, b) < w('P_NivStart', b));
-    const verstreken = (Date.now() - START) / 1000; const mengers = {};
-    m.sporen.forEach(bak => {
-      if (!inGebruik(bak)) return;
-      const pc = niveauPct(s, bak), aan = w('P_NivRoerderAan', bak), dr = w('P_TijdRoerderAan', bak), ru = w('P_TijdRoerderRust', bak);
-      const geldig = (naam, v) => { const g = GRENZEN[naam]; return v !== null && v >= g.min && v <= g.max; };
-      let st;
-      if (!(geldig('P_NivRoerderAan', aan) && geldig('P_TijdRoerderAan', dr) && geldig('P_TijdRoerderRust', ru))) st = { stand: 'uit', reden: 'instelling ontbreekt', restS: 0 };
-      else if (pc === null) st = { stand: 'wacht', reden: 'niveau onbekend', restS: 0 };
-      else if (pc < aan) st = { stand: 'wacht', reden: 'te laag', restS: 0 };
-      else if (ru <= 0) st = { stand: 'draait', reden: '', restS: 0 };
-      else { const periode = (dr + ru) * 60; const fase = verstreken % periode; st = fase < dr * 60 ? { stand: 'draait', reden: '', restS: Math.trunc(dr * 60 - fase) } : { stand: 'rust', reden: '', restS: Math.trunc(periode - fase) }; }
-      mengers[bak] = st;
-      const comp = componenten().find(c => c.ref === 'M' + bak.slice(2)); const k = comp && comp.io && comp.io.length ? genKanaal(comp.io[0]) : null;
-      if (k) klem[k] = st.stand === 'draait';
-    });
-    s.mengers = mengers;
-  }
   function momentopname() {
-    const m = machine(); const extra = standExtra();
+    const extra = standExtra(); const hmi = sim().hmi();
+    /* de klemmen: wat de PLC stuurt (uitgangen) en wat de machine meldt (ingangen), allebei uit de nabootsing */
     const klem = {}; kanalen().forEach(k => { klem[k.sleutel] = (k.type === 'DO' || k.type === 'DI') ? false : 0; });
+    Object.assign(klem, ENGINE.uitgangen, ENGINE.ingangen);
     const waarden = {};
-    componenten().forEach(c => { if (c.soort === 'Niveausensor') waarden[c.ref] = { v: 0.0, u: 'L' }; else if (['Niveauschakelaar', 'Bedrijfsmelding', 'Storingsmelding', 'Drukschakelaar'].includes(c.soort)) waarden[c.ref] = { v: false }; });
-    waarden.FC01 = { v: 0.0, u: 'l/min' };
+    componenten().forEach(c => {
+      if (c.soort === 'Niveausensor') waarden[c.ref] = { v: 0.0, u: 'L' };
+      else if (['Niveauschakelaar', 'Bedrijfsmelding', 'Storingsmelding', 'Drukschakelaar'].includes(c.soort)) { const k = c.io && c.io.length ? genKanaal(c.io[0]) : null; waarden[c.ref] = { v: k ? !!klem[k] : false }; }
+    });
+    waarden.FC01 = { v: hmi.flowLpm, u: 'l/min' };   // wat de PLC uit de pulsen rekent, met zijn pulsgewicht
+    waarden.FCS1 = { v: hmi.hz, u: 'Hz' };           // het setpoint dat de PLC stuurt
     const s = { versie: 1, ts: nu(),
-      bridge: { bron: 'nabootsing', bronNaam: 'de deelversie in je browser', plcOk: true, plcDraait: null, plcToestand: 'nabootsing', statusAgeSec: 0 },
+      bridge: { bron: 'nabootsing', bronNaam: 'de machine en de PLC nagebootst in je browser', plcOk: true, plcDraait: null, plcToestand: 'nabootsing', statusAgeSec: 0 },
       systeem: { gemeten: false, reden: GEEN_CONTROLLER }, controller: { gemeten: false, reden: GEEN_CONTROLLER },
-      machine: { modus: 'IDLE', fout: 0, doseerkring: '' }, waarden, instellingen: kopie(ONTWERP_WAARDEN), grenzen: grenzenNu() };
-    const rest = {}; Object.keys(extra).forEach(k => { if (!['events', 'beurten', 'kanalen', 'bus', 'configuratie', 'kalibratie'].includes(k) && !k.startsWith('_')) rest[k] = extra[k]; });
+      machine: hmi.machine, waarden, instellingen: kopie(ONTWERP_WAARDEN), grenzen: grenzenNu() };
+    const rest = {}; Object.keys(extra).forEach(k => { if (!['events', 'beurten', 'kanalen', 'bus', 'configuratie', 'kalibratie', 'waarden', 'machine', 'mengers'].includes(k) && !k.startsWith('_')) rest[k] = extra[k]; });
     meng(s, rest);
-    if (S.rust) {   // de knop 'Machine in rust': geen beurt, alles uit; dan kunnen collega's ook toepassen en ijken proberen
-      s.machine = { modus: 'IDLE', fout: 0, doseerkring: '' };
-      Object.keys(s.waarden).forEach(k => { if (/^(BM|HM|SM)-/.test(k)) s.waarden[k] = { v: false }; });
-      s.waarden.FC01 = { v: 0.0, u: 'l/min' }; if (s.waarden.FCS1) s.waarden.FCS1 = { v: 0, u: 'Hz' };
-    }
-    if (S.CONFIG !== null) { const c = kopie(S.CONFIG); c.geldig = toetsConfig(S.CONFIG) === null; c.resultaat = Object.assign({}, S.RESULTAAT); c.leiding = 'schoon'; s.configuratie = c; }
+    if (S.CONFIG !== null) { const c = kopie(S.CONFIG); c.geldig = toetsConfig(S.CONFIG) === null; c.resultaat = Object.assign({}, S.RESULTAAT); c.leiding = ENGINE.leiding.nietWater() > 0.05 ? 'vuil' : 'schoon'; s.configuratie = c; }
     if (S.RECEPTOPBOUW !== null) s.receptopbouw = Object.assign(kopie(S.RECEPTOPBOUW), { resultaat: Object.assign({}, S.RB_RESULTAAT) });
     delete s.volgorde;
     perBronUitvouwen(s.instellingen); meng(s.instellingen, S.wijzigingen);
+    const nl = s.instellingen.P_VolNaloop;   // de geleerde naloop komt van de PLC [doc §9.1: automatisch]
+    if (Array.isArray(nl)) Object.keys(hmi.naloop).forEach(n => { const i = Number(n) - 1; if (nl[i]) nl[i] = { v: Math.round(hmi.naloop[n] * 100) / 100, u: 'L' }; });
     Object.keys(S.receptWijzigingen).forEach(bak => { const lijst = (s.recepten = s.recepten || {})[bak] || (s.recepten[bak] = []); Object.keys(S.receptWijzigingen[bak]).forEach(n => { n = Number(n); while (lijst.length < n) lijst.push(null); lijst[n - 1] = kopie(S.receptWijzigingen[bak][n]); }); });
     s.balans = balans(s);
-    componenten().forEach(c => {
-      if (c.soort !== 'Niveausensor') return;
-      const bak = c.ref.split('-').slice(1).join('-'); const L = getal(s.waarden[c.ref]); const k = genKanaal(c.io[0]);
-      if (k && L !== null) klem[k] = Math.round(RUW_NUL + RUW_BEREIK * Math.max(0, Math.min(1.2, L / (m.schaal[bak] || 1000)))) + (Math.floor(Math.random() * 9) - 4);
-    });
-    Object.keys(extra.kanalen || {}).forEach(sl => { if (sl in klem) { const w = extra.kanalen[sl]; const v = isObj(w) ? w.v : w; if (S.rust && v === true) return; klem[sl] = v; } });
     const kal = kopie(S.KAL); const kalRes = Object.assign({}, S.KAL_RESULTAAT);
-    const fl = getal(s.waarden.FC01);
-    if (fl !== null) {
-      const freq = fl / 60 / PULS_ONTWERP;
-      s.waarden.FC01 = { v: Math.round(freq * pulsGewicht(kal) * 60 * 10) / 10, u: 'l/min' };
-      const comp = componenten().find(c => c.ref === 'FC01' && c.io && c.io.length); const kc = comp ? genKanaal(comp.io[0]) : null;
-      if (kc && (s.waarden['BM-FCS1'] || {}).v) { const verstreken = (Date.now() - START) / 1000; klem[kc] = (Math.trunc((getal(klem[kc]) || 0) + freq * verstreken)) >>> 0; }
-    }
     if (kal !== null) {
       componenten().forEach(c => {
         if (c.soort !== 'Niveausensor') return;
@@ -357,15 +385,13 @@
       });
       s.kalibratie = Object.assign(kal, { resultaat: kalRes });
     }
-    vulEnMengers(s, klem);
+    s.mengers = hmi.mengers;
     s.modules = modulesUit(klem, extra.bus || {});
     s.axioSamenstelling = { bron: 'nabootsing: afgeleid uit de IO-mapping, niet van een controller gelezen', gemeten: true };
     return s;
   }
   const GEEN_CONTROLLER = 'nabootsing: er is geen controller. Identiteit, stand, gezondheid en het statusregister van de bus komen alleen van een echte controller.';
-  function events() {
-    return (STAND.events || []).map(e => { e = Object.assign({}, e); if ('minutenGeleden' in e) { e.ts = tijd(START - Number(e.minutenGeleden) * 60000); delete e.minutenGeleden; } if (S.acks[e.id]) e.ackTs = S.acks[e.id]; return e; });
-  }
+  function events() { return sim().hmi().events.map(e => { const x = Object.assign({}, e); if (S.acks[x.id]) x.ackTs = S.acks[x.id]; return x; }); }
 
   /* ---------------- inloggen: zoals brug 0.5, met Bediening open ---------------- */
   function sessie(verleng) {
@@ -414,7 +440,7 @@
   }
 
   /* ---------------- de opdrachten ---------------- */
-  function machineNu() { return S.rust ? { modus: 'IDLE', doseerkring: '' } : Object.assign({ modus: 'IDLE', doseerkring: '' }, STAND.machine || {}); }
+  function machineNu() { return sim().hmi().machine; }
   function instelling(d) {
     const naam = d.naam, index = d.index, w = d.waarde; const m = machine();
     if (typeof naam !== 'string' || !naam.startsWith('P_')) return json(400, { ok: false, fout: 'onbekende instelling' });
@@ -581,7 +607,7 @@
       if (pad.startsWith('/advies/')) { const [, a] = adviesZoek(pad.slice(8)); if (!a) return json(404, { ok: false, fout: 'dit adviesblad bestaat niet (meer)' }); return new Response(a.blob, { status: 200, headers: { 'Content-Type': 'application/pdf' } }); }
       if (pad === '/auditlog') { const s = wie(); if (!s || RANG[s.niveau] < RANG.service) return weiger('service'); return json(200, S.AUDIT.slice().reverse()); }
       if (pad === '/events') return json(200, events());
-      if (pad === '/beurten') return json(200, STAND.beurten || []);
+      if (pad === '/beurten') return json(200, sim().hmi().beurten);
       if (pad === '/gezond') return json(200, { ok: true });
       return json(404, { ok: false, fout: 'niet gevonden' });
     }
@@ -590,7 +616,7 @@
     let data = {};
     try { const b = init.body; if (typeof b === 'string' && b) data = JSON.parse(b); else if (b instanceof Blob) data = JSON.parse(await b.text()); } catch (_) { return json(400, { ok: false, fout: 'geen geldige JSON' }); }
     if (!isObj(data)) return json(400, { ok: false, fout: 'verwacht een object' });
-    if (pad === '/ack') { const i = String(data.id || ''); if (!(STAND.events || []).some(e => String(e.id) === i)) return json(404, { ok: false, fout: 'onbekende melding' }); S.acks[i] = nu(); bewaar(); return json(200, { ok: true }); }
+    if (pad === '/ack') { const i = String(data.id || ''); if (!sim().events.some(e => String(e.id) === i)) return json(404, { ok: false, fout: 'onbekende melding' }); S.acks[i] = nu(); bewaar(); return json(200, { ok: true }); }
     if (pad === '/login') return login(data);
     if (pad === '/logout') return logout();
     if (pad === '/sessie/verleng') { const s = wie(); return json(s ? 200 : 401, { ok: !!s }); }
@@ -617,23 +643,35 @@
   };
 
   /* ---------------- opnieuw beginnen, en de koppeling voor het pdf-venster ---------------- */
-  function opnieuw() { try { localStorage.removeItem(SLEUTEL); sessionStorage.removeItem(SLEUTEL_SESSIE); } catch (_) { } location.replace(location.pathname + location.hash); }
+  let gestopt = false;   // na 'opnieuw' niets meer bewaren: anders schrijft een tik van de nabootsing de oude stand terug vóór de pagina herlaadt
+  function opnieuw() { gestopt = true; try { localStorage.removeItem(SLEUTEL); sessionStorage.removeItem(SLEUTEL_SESSIE); } catch (_) { } location.replace(location.pathname + location.hash); }
   if (/[?&]opnieuw\b/.test(location.search)) opnieuw();
-  function rust(aan) { S.rust = !!aan; bewaar(); tekenKnoppen(); if (typeof haalBron === 'function') haalBron(); }
-  window.BV_DEEL = { adviesUrl, opnieuw, rust, versie: GEMAAKT };
+  function rust(aan) { S.rust = !!aan; sim().zetAuto(!S.rust); simBewaar(); tekenKnoppen(true); if (typeof haalBron === 'function') haalBron(); }
+  function kwiteer() { sim().kwiteer(); tekenKnoppen(true); }
+  function afvoeren(kant) { sim(); Object.keys(ENGINE.bakken).forEach(loc => { const b = ENGINE.bakken[loc]; if (b.soort === 'tussenbak' && b.kant === kant) { b.zetVolume(0); ENGINE.melding('info', 'Tussenbak ' + kant + ' met de hand afgevoerd (knop in de nabootsing).'); } }); ENGINE._rekenIngangen(0); tekenKnoppen(true); }
+  window.BV_DEEL = { adviesUrl, opnieuw, rust, kwiteer, afvoeren, zetTempo, tempo: () => tempo, sim: { engine: () => ENGINE, plc: () => sim(), def: () => DEF, DT }, versie: GEMAAKT };
   const KNOP = 'padding:8px 12px;border-radius:999px;border:1px solid #4b3fa0;background:#4b3fa0;color:#fff;font:600 12px system-ui,sans-serif;cursor:pointer;opacity:.9';
-  function tekenKnoppen() {
+  const KNOP_LICHT = KNOP + ';background:#fff;color:#4b3fa0';
+  const KNOP_ROOD = KNOP + ';background:#b3261e;border-color:#b3261e';
+  let knoppenSleutel = '';
+  function tekenKnoppen(altijd) {
+    const fout = PLC ? PLC.fout : 0;
+    const halve = PLC ? ['A', 'B'].map(k => PLC.restant[k] && PLC.restant[k].half ? k + Math.round(PLC.restant[k].liters) : '').join('') : '';
+    const sleutel = [S.rust, tempo, fout, halve].join('|');
+    if (!altijd && sleutel === knoppenSleutel && document.getElementById('bv-deel-knoppen')) return;
+    knoppenSleutel = sleutel;
     let vak = document.getElementById('bv-deel-knoppen');
-    if (!vak) { vak = document.createElement('div'); vak.id = 'bv-deel-knoppen'; vak.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;display:flex;gap:8px'; document.body.appendChild(vak); }
+    if (!vak) { if (!document.body) return; vak = document.createElement('div'); vak.id = 'bv-deel-knoppen'; vak.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;display:flex;gap:8px;flex-wrap:wrap;align-items:center'; document.body.appendChild(vak); }
     vak.innerHTML = '';
-    const r = document.createElement('button'); r.type = 'button'; r.style.cssText = KNOP;
-    r.textContent = S.rust ? 'Beurt laten lopen' : 'Machine in rust zetten';
-    r.title = S.rust ? 'Terug naar het testscenario: er loopt een beurt naar tussenbak A' : 'Alles uit, geen beurt: dan kun je ook Configuratie toepassen en ijken proberen';
-    r.onclick = function () { rust(!S.rust); };
-    const o = document.createElement('button'); o.type = 'button'; o.style.cssText = KNOP + ';background:#fff;color:#4b3fa0';
-    o.textContent = 'Opnieuw beginnen'; o.title = 'Alles wat in deze browser is gewijzigd wissen, en de proef opnieuw beginnen met de testgegevens';
-    o.onclick = function () { if (confirm('Alles wat je in deze proef hebt gewijzigd wissen, en opnieuw beginnen?')) opnieuw(); };
-    vak.appendChild(r); vak.appendChild(o);
+    const knop = (tekst, stijl, titel, klik) => { const b = document.createElement('button'); b.type = 'button'; b.style.cssText = stijl; b.textContent = tekst; b.title = titel; b.onclick = klik; vak.appendChild(b); return b; };
+    if (fout) knop('Storing ' + fout + ' kwiteren', KNOP_ROOD, 'De storing is verholpen (in deze nabootsing altijd): de machine weer vrijgeven, zoals de resetknop op de kast', kwiteer);
+    ['A', 'B'].forEach(kant => { const r = PLC && PLC.restant[kant]; if (r && r.half) knop('Tussenbak ' + kant + ' afvoeren (' + Math.round(r.liters) + ' L)', KNOP_ROOD, 'Een halve batch neemt de machine nooit mee: in het echt voert de operator hem af; hier maakt deze knop de tussenbak leeg', function () { afvoeren(kant); }); });
+    knop(S.rust ? 'Machine starten' : 'Machine stilzetten', KNOP, S.rust ? 'Automatisch bedrijf weer aan: bakken die om een vulling vragen, krijgen er een' : 'Lopende beurten afbreken, alles uit, geen nieuwe beurt: dan kun je ook Configuratie toepassen en ijken', function () { rust(!S.rust); });
+    const groep = document.createElement('span'); groep.style.cssText = 'display:inline-flex;gap:2px;background:#fff;border:1px solid #4b3fa0;border-radius:999px;padding:2px';
+    groep.title = 'Sneller kijken: dezelfde machine, dezelfde rekensom, alleen meer seconden per seconde';
+    TEMPOS.forEach(t => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t + '×'; b.style.cssText = 'padding:5px 9px;border-radius:999px;border:0;font:600 12px system-ui,sans-serif;cursor:pointer;' + (t === tempo ? 'background:#4b3fa0;color:#fff' : 'background:transparent;color:#4b3fa0'); b.onclick = function () { zetTempo(t); }; groep.appendChild(b); });
+    vak.appendChild(groep);
+    knop('Opnieuw beginnen', KNOP_LICHT, 'Alles wat in deze browser is gewijzigd wissen, en de proef opnieuw beginnen met de begintoestand', function () { if (confirm('Alles wat je in deze proef hebt gewijzigd wissen, en opnieuw beginnen?')) opnieuw(); });
   }
-  document.addEventListener('DOMContentLoaded', tekenKnoppen);
+  document.addEventListener('DOMContentLoaded', function () { tekenKnoppen(true); });
 })();
