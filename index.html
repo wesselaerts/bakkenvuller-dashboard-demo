@@ -534,9 +534,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 @keyframes waveX{from{transform:translateX(0)}to{transform:translateX(calc(var(--wl,40px) * -1))}}
 
 /* mengbellen (alleen tijdens recirculatie) */
-
-
-
+.bubbles{opacity:0;transition:opacity .5s var(--ease)}
+.bubbles.on{opacity:.55}
+.bubbles circle{animation:bub 3.2s ease-in infinite;transform-box:fill-box}
 @keyframes bub{0%{transform:translateY(0);opacity:0}15%{opacity:.7}100%{transform:translateY(-42px);opacity:0}}
 /* zacht ademende gloed op draaiende pomp (functioneel: 'actief') */
 
@@ -2163,6 +2163,54 @@ html{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
   body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   input,textarea,select,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
 }
+/* 28-09 (app 0.4.3): het venster boven het schema opent vlot op het paneel. De wazige laag
+   (backdrop-filter) over het hele scherm rekende de browser bij elk beeld opnieuw uit: tijdens het
+   openen, bij de knipperende stip eronder en bij elke verversronde. Gemeten in Edge zonder grafische
+   kaart: openen met wazige laag 4-5 beelden van 113-129 ms, zonder 15 beelden van 27 ms.
+   De verdonkering blijft precies gelijk; alleen is de achtergrond niet meer wazig. */
+.modal-scrim{-webkit-backdrop-filter:none;backdrop-filter:none}
+/* 28-09 (app 0.4.3, Wessel): het overzicht past precies in het scherm en scrolt niet. Op een breed scherm vult het
+   de ruimte onder de bovenbalk; het schema schaalt mee tot het zo groot mogelijk past (de breedte of de hoogte,
+   wat het eerst op is) en staat in het midden. Smalle of lage schermen (zoals een laptop van 1366 x 768) houden de
+   gewone indeling en scrollen: daar zou het schema te klein worden om te lezen. Het paneel is 1920 x 1080. */
+@media (min-width:1101px) and (min-height:900px){
+  html[data-scherm="overzicht"],html[data-scherm="overzicht"] body{overflow:hidden}
+  html[data-scherm="overzicht"] .shell{height:100vh;min-height:0}
+  html[data-scherm="overzicht"] #main{display:flex;flex-direction:column;height:calc(100vh - var(--topbar-h) - var(--connb,0px));padding-bottom:24px}
+  html[data-scherm="overzicht"] .ov-strook{flex:none}
+  html[data-scherm="overzicht"] .ov-schema{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+  html[data-scherm="overzicht"] .ov-kop,html[data-scherm="overzicht"] .ov-voet{flex:none}
+  html[data-scherm="overzicht"] .ov-svg{flex:1 1 0;min-height:0;position:relative;padding:0}
+  html[data-scherm="overzicht"] .ov-svg svg.sv{position:absolute;top:6px;left:10px;width:calc(100% - 20px);height:calc(100% - 6px)}
+}
+/* 28-09 (app 0.4.3): het cijferblok voor getalvelden (F4_cijferblok.js). Licht: alleen een zachte schaduw en een
+   korte verschijning (doorzichtigheid en verschuiving, niets wazigs), zodat het op het paneel direct staat. */
+#np-vang{position:fixed;top:0;right:0;bottom:0;left:0;z-index:94;touch-action:none}
+#np-vang[hidden],#np[hidden]{display:none}
+#np{position:fixed;left:0;top:0;z-index:95;width:304px;padding:14px;border-radius:var(--r-xl);background:var(--c-surface);border:1px solid var(--c-line);box-shadow:var(--sh-3);touch-action:none;-webkit-user-select:none;user-select:none}
+#np.in{animation:npIn .16s var(--ease-out) both}
+#np.in.boven{animation-name:npInBoven}
+@keyframes npIn{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes npInBoven{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}
+.np-kop{padding:0 2px 12px}
+.np-label{font-size:12.5px;font-weight:600;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-scherm{display:flex;align-items:center;justify-content:flex-end;height:58px;margin-top:8px;padding:0 14px;border-radius:var(--r-md);background:var(--c-sunken);border:1px solid var(--c-line);overflow:hidden}
+.np-w{font-size:30px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;padding:0 3px;border-radius:6px}
+.np-w:empty::before{content:attr(data-leeg);color:var(--ink-3);font-weight:500}
+.np-caret{flex:none;width:2px;height:30px;margin-left:2px;border-radius:1px;background:var(--acc)}
+#np.vervang .np-w{background:var(--acc-100);color:var(--acc-700)}
+#np.vervang .np-caret{display:none}
+.np-was{height:16px;margin-top:6px;font-size:12px;color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+.np-toetsen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.np-t{height:60px;padding:0;border-radius:var(--r-md);border:1px solid var(--c-line);background:var(--c-surface);color:var(--ink);font-family:var(--font);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),transform 90ms var(--ease-out)}
+.np-t:hover{background:var(--c-sunken)}
+.np-t:active{background:var(--acc-50);border-color:var(--acc);transform:scale(.97)}
+.np-t:disabled{opacity:.35;cursor:default}
+.np-t:disabled:hover,.np-t:disabled:active{background:var(--c-surface);border-color:var(--c-line);transform:none}
+.np-terug{color:var(--ink-2)}
+.np-acties{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.np-acties .btn{justify-content:center;min-height:56px;font-size:15px}
+input.np-doel{border-color:var(--acc)!important;box-shadow:0 0 0 3px var(--acc-50)!important;outline:none}
 </style>
 </head>
 <body>
@@ -2210,9 +2258,9 @@ html{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 
 <div class="toast" id="toast"></div>
 
-<script src="machine.js?v=202609280907"></script>
-<script src="plc.js?v=202609280907"></script>
-<script src="nabootsing.js?v=202609280907"></script>
+<script src="machine.js?v=202609281352"></script>
+<script src="plc.js?v=202609281352"></script>
+<script src="nabootsing.js?v=202609281352"></script>
 <script>
 "use strict";
 /* ==================================================================
@@ -3394,6 +3442,10 @@ function render(){
   if(!magScherm(ui.scherm))ui.scherm='overzicht';
   zetAdres();
   getekendCfg=cfgSleutel();
+  /* het veld van een open cijferblok verdwijnt met het oude scherm: dicht zonder op te slaan */
+  if(npOpen())npSluit(false);
+  /* 28-09: het open scherm als kenmerk op de pagina; het overzicht past zo precies in het scherm (extra.css) */
+  if(document.documentElement.getAttribute('data-scherm')!==ui.scherm){document.documentElement.setAttribute('data-scherm',ui.scherm);if(ui.scherm==='overzicht')window.scrollTo(0,0);}
   const s=SCHERMEN[ui.scherm];const main=$('#main');
   main.innerHTML=s.view?s.view():'';
   if(s.mount)s.mount();
@@ -5800,6 +5852,118 @@ document.addEventListener('change',e=>{const s=e.target.closest('[data-adv-eerde
 
 
 /* ==================================================================
+   CIJFERBLOK (28-09, Wessel: "als ik waarden wil intypen, wat altijd cijfers zijn, krijg ik liever een number pad")
+   Een tik op een getalveld (getalVeld() in G_init.js: inputmode decimal of numeric, geen wachtwoord) opent dit blok
+   in plaats van het schermtoetsenbord van het paneel.
+   Waarom een eigen blok: de browser van het paneel (Qt WebEngine) geeft het toetsenbord alleen het veldtype door en
+   negeert inputmode. Daarom kwam bij elk getal het hele toetsenbord. Een veld van het type number zou wel een
+   cijferindeling geven, maar dan schrijft de browser 12.5 in plaats van 12,5 en draait het muiswiel aan de waarde.
+   Hoe het werkt:
+   - het veld krijgt bij tikken of klikken geen focus, dus het toetsenbord van het paneel blijft weg;
+   - net als bij typen vervangt het eerste cijfer de oude waarde (22-09); wissen haalt één cijfer weg, lang
+     indrukken wist alles;
+   - OK schrijft de waarde in het veld met een input- en een change-gebeurtenis, precies zoals typen, dus de
+     schermen zelf merken geen verschil; Annuleren, Esc of ernaast tikken laat alles zoals het was;
+   - op de laptop typ je gewoon in het blok (cijfers, komma of punt, Backspace, Enter, Esc); met Tab naar een veld
+     typ je er direct in, zoals vroeger.
+   Namen, zoekvelden en wachtwoorden houden het toetsenbord van het paneel.
+   ================================================================== */
+I.terug='<path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="M17 9.5l-5 5M12 9.5l5 5"/>';
+const NP={doel:null,oud:'',waarde:'',vervang:true,komma:true,el:null,vang:null,raf:0};
+const NP_MAX=12;   // cijfers in één waarde; meer past niet in het venster en heeft geen veld nodig
+function npOpen(){return !!NP.doel;}
+function npMag(inp){return !!inp&&!inp.disabled&&!inp.readOnly&&inp.isConnected;}
+function npMaak(){
+  if(NP.el)return;
+  const t=k=>`<button type="button" class="np-t" data-np="${k}">${k}</button>`;
+  const vang=document.createElement('div');vang.id='np-vang';vang.hidden=true;
+  const el=document.createElement('div');el.id='np';el.hidden=true;el.setAttribute('role','dialog');el.setAttribute('aria-label','Cijferblok');
+  el.innerHTML=`<div class="np-kop"><div class="np-label" id="np-label"></div>
+      <div class="np-scherm"><span class="np-w" id="np-w"></span><i class="np-caret"></i></div>
+      <div class="np-was" id="np-was"></div></div>
+    <div class="np-toetsen">${['7','8','9','4','5','6','1','2','3'].map(t).join('')}${t(',')}${t('0')}<button type="button" class="np-t np-terug" data-np="terug" aria-label="Laatste cijfer wissen">${ic('terug',26,1.8)}</button></div>
+    <div class="np-acties"><button type="button" class="btn np-x" data-np="x">Annuleren</button><button type="button" class="btn primary np-ok" data-np="ok">${ic('check',18,2.4)} OK</button></div>`;
+  document.body.appendChild(vang);document.body.appendChild(el);NP.el=el;NP.vang=vang;
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-np]');if(b&&!b.disabled)npToets(b.dataset.np);});
+  /* ernaast tikken sluit zonder op te slaan; tik je daarbij op een ander getalveld, dan opent dat meteen */
+  vang.addEventListener('click',e=>{const x=e.clientX,y=e.clientY;npSluit(false);
+    const ander=document.elementFromPoint(x,y);if(getalVeld(ander)&&npMag(ander))npOpenVoor(ander);});
+  /* lang indrukken op wissen: alles weg */
+  let lang=0;const tb=el.querySelector('.np-terug');
+  tb.addEventListener('pointerdown',()=>{clearTimeout(lang);lang=setTimeout(()=>{if(!NP.doel)return;NP.waarde='';NP.vervang=false;npToon();},550);},{passive:true});
+  ['pointerup','pointerleave','pointercancel'].forEach(n=>tb.addEventListener(n,()=>clearTimeout(lang),{passive:true}));
+}
+function npOpenVoor(inp){
+  npMaak();
+  if(NP.doel&&NP.doel!==inp)npSluit(false);
+  NP.doel=inp;NP.oud=inp.value;NP.waarde=inp.value;NP.vervang=true;
+  NP.komma=inp.getAttribute('inputmode')!=='numeric';
+  inp.classList.add('np-doel');
+  $('#np-label').textContent=inp.getAttribute('aria-label')||'Getal';
+  const w=$('#np-w');w.dataset.leeg=inp.placeholder&&inp.placeholder!==STREEP?inp.placeholder:'0';
+  NP.el.querySelector('[data-np=","]').disabled=!NP.komma;
+  NP.vang.hidden=false;NP.el.hidden=false;
+  npToon();npPlaats();
+  NP.el.classList.remove('in');void NP.el.offsetWidth;NP.el.classList.add('in');
+}
+function npToon(){
+  const w=$('#np-w');if(w.textContent!==NP.waarde)w.textContent=NP.waarde;
+  NP.el.classList.toggle('vervang',NP.vervang&&NP.waarde!=='');
+  const t=NP.oud!==''&&NP.waarde!==NP.oud?'was '+NP.oud:'';const was=$('#np-was');if(was.textContent!==t)was.textContent=t;
+}
+function npToets(k){
+  if(!NP.doel)return;
+  if(k==='ok'){npSluit(true);return;}
+  if(k==='x'){npSluit(false);return;}
+  let v=NP.vervang?'':NP.waarde;
+  if(k==='terug')v=NP.vervang?'':NP.waarde.slice(0,-1);
+  else if(k===','){if(!NP.komma||v.includes(','))return;v=(v===''?'0':v)+',';}
+  else if(/^[0-9]$/.test(k)){if(v.replace(',','').length>=NP_MAX)return;v=(v==='0'?'':v)+k;}
+  else return;
+  NP.waarde=v;NP.vervang=false;npToon();
+}
+function npSluit(bewaar){
+  const inp=NP.doel;if(!inp)return;
+  NP.doel=null;NP.el.hidden=true;NP.vang.hidden=true;NP.el.classList.remove('in');inp.classList.remove('np-doel');
+  if(!bewaar||NP.waarde===NP.oud)return;
+  if(!inp.isConnected){toast('Het scherm is intussen vernieuwd; vul de waarde opnieuw in','warn');return;}
+  inp.value=NP.waarde;
+  inp.dispatchEvent(new Event('input',{bubbles:true}));
+  inp.dispatchEvent(new Event('change',{bubbles:true}));
+}
+/* onder het veld; past dat niet, erboven; past dat ook niet, ernaast. Altijd binnen het scherm. */
+function npPlaats(){
+  const inp=NP.doel,el=NP.el;if(!inp||!el)return;
+  const r=inp.getBoundingClientRect(),W=window.innerWidth,H=window.innerHeight,m=12,bw=el.offsetWidth,bh=el.offsetHeight;
+  let x=r.left,y=r.bottom+8,kant='onder';
+  if(y+bh>H-m){
+    if(r.top-8-bh>=m){y=r.top-8-bh;kant='boven';}
+    else{y=Math.min(Math.max(m,r.top+r.height/2-bh/2),H-m-bh);x=r.right+12;if(x+bw>W-m)x=r.left-12-bw;kant='naast';}
+  }
+  x=Math.min(Math.max(m,x),W-m-bw);
+  el.style.left=Math.round(x)+'px';el.style.top=Math.round(y)+'px';
+  el.classList.toggle('boven',kant==='boven');
+}
+function npKoppel(){
+  /* geen focus bij tikken of klikken: dan komt het toetsenbord van het paneel niet */
+  document.addEventListener('mousedown',e=>{const t=e.target;if(getalVeld(t)&&npMag(t)&&document.activeElement!==t)e.preventDefault();},true);
+  document.addEventListener('click',e=>{const t=e.target;if(getalVeld(t)&&npMag(t)&&document.activeElement!==t)npOpenVoor(t);},true);
+  document.addEventListener('keydown',e=>{if(!NP.doel)return;const k=e.key;
+    if(/^[0-9]$/.test(k))npToets(k);
+    else if(k===','||k==='.'||k==='Decimal')npToets(',');
+    else if(k==='Backspace')npToets('terug');
+    else if(k==='Delete'){NP.waarde='';NP.vervang=false;npToon();}
+    else if(k==='Enter')npToets('ok');
+    else if(k==='Escape')npToets('x');
+    else if(k!=='Tab')return;
+    e.preventDefault();e.stopPropagation();},true);
+  const volg=()=>{if(!NP.doel||NP.raf)return;NP.raf=requestAnimationFrame(()=>{NP.raf=0;npPlaats();});};
+  window.addEventListener('scroll',volg,{passive:true,capture:true});
+  window.addEventListener('resize',volg,{passive:true});
+}
+
+
+/* ==================================================================
    SCHERMEN KOPPELEN, ELKE RONDE, OPSTARTEN
    ================================================================== */
 Object.assign(SCHERMEN.overzicht,{view:viewOverzicht,mount:mountOverzicht,ververs:verversOverzicht});
@@ -5827,7 +5991,7 @@ function naElkeRondeIn(){
   const nb=navBadge()+'|'+heeftOnderhoud();if(nb!==vorigeNavBadge){vorigeNavBadge=nb;tekenNav();}
   const s=SCHERMEN[ui.scherm];
   /* invoervelden die de gebruiker aan het invullen is, niet overschrijven */
-  const act=document.activeElement;const typt=act&&(act.tagName==='INPUT'||act.tagName==='TEXTAREA'||act.tagName==='SELECT')&&$('#main').contains(act);
+  const act=document.activeElement;const typt=npOpen()||act&&(act.tagName==='INPUT'||act.tagName==='TEXTAREA'||act.tagName==='SELECT')&&$('#main').contains(act);
   /* is de configuratie in de PLC veranderd (aantallen, namen, groepen), dan tekent het open scherm
      opnieuw, zodat alles meespringt (besluit 22-09). Het configuratiescherm houdt het concept van de
      monteur vast en meldt zelf dat de PLC intussen een nieuwe versie heeft. */
@@ -5863,6 +6027,8 @@ function koppel(){
   let selNaFocus=null;
   document.addEventListener('focusin',e=>{const t=e.target;if(!getalVeld(t))return;try{t.select();}catch(_){}selNaFocus=t;});
   document.addEventListener('mouseup',e=>{if(selNaFocus&&e.target===selNaFocus)e.preventDefault();selNaFocus=null;},true);
+  /* 28-09: tikken of klikken op een getalveld opent het cijferblok (F4_cijferblok.js); Tab + typen blijft zoals hierboven */
+  npKoppel();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){tekenKlok();haalBron();}});
   window.addEventListener('hashchange',()=>{if(schermUitAdres()){document.body.classList.remove('nav-open');tekenNiveaus();tekenNav();render();}else zetAdres();});
 }
@@ -5896,7 +6062,7 @@ function init(){
 /* Een paneel dat maanden aan staat (25-09, voor twintig jaar): één keer per dag, tussen 03:00 en 05:00 Nederlandse
    tijd, de pagina vers laden, zodat een browser die langzaam geheugen opbouwt weer schoon begint. Alleen als niemand
    iets doet: geen venster open, geen veld met focus, geen onverstuurd concept. Scherm en niveau blijven bewaard (ui). */
-function rustig(){const act=document.activeElement;const typt=!!act&&(act.tagName==='INPUT'||act.tagName==='TEXTAREA');
+function rustig(){const act=document.activeElement;const typt=npOpen()||!!act&&(act.tagName==='INPUT'||act.tagName==='TEXTAREA');
   const venster=!!$('#modal-scrim')&&$('#modal-scrim').classList.contains('show');
   const concept=Object.keys(insCon).length>0||Object.keys(rdCon).length>0||Object.values(rbCon).some(c=>c&&c.bewerkt)
     ||Object.values(rcCon).some(c=>c&&c.bewerkt)||!!(cf&&cf.bewerkt)||!!rbSleep;
