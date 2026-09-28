@@ -2136,6 +2136,15 @@ body.rb-sleept,body.rb-sleept *{cursor:grabbing!important;user-select:none;-webk
 .sv-gchip.a rect{fill:var(--a-bg)} .sv-gchip.a text{fill:var(--a)}
 .sv-gchip.b rect{fill:var(--b-bg)} .sv-gchip.b text{fill:var(--b)}
 .sv-gchip.ab rect{fill:var(--ab-bg)} .sv-gchip.ab text{fill:var(--ab)}
+
+/* 28-09 (Wessel: "het dashboard scrolt op het paneel soms net een tikkie traag"): het zachte verloop achter de pagina
+   stond op background-attachment:fixed (opmaak van de oude HMI). Chromium, en dus de Qt Browser van het paneel, scrollt
+   dan op de hoofdtaak en tekent bij elke scrolstap het hele scherm opnieuw. Hetzelfde verloop staat nu in een eigen,
+   vaste laag achter de pagina: hetzelfde beeld, en bij scrollen schuift de browser alleen de pagina over die laag.
+   Geen 'inset' (pas vanaf Chromium 87): top/right/bottom/left. In het donkere thema blijft de effen achtergrond. */
+body{background:#E7EDE8}
+body::before{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:-1;pointer-events:none;background:linear-gradient(177deg,#F0F4F0 0%,#E7EDE8 100%)}
+:root[data-theme="dark"] body::before{content:none}
 </style>
 </head>
 <body>
@@ -2183,9 +2192,9 @@ body.rb-sleept,body.rb-sleept *{cursor:grabbing!important;user-select:none;-webk
 
 <div class="toast" id="toast"></div>
 
-<script src="machine.js?v=202609280819"></script>
-<script src="plc.js?v=202609280819"></script>
-<script src="nabootsing.js?v=202609280819"></script>
+<script src="machine.js?v=202609280833"></script>
+<script src="plc.js?v=202609280833"></script>
+<script src="nabootsing.js?v=202609280833"></script>
 <script>
 "use strict";
 /* ==================================================================
