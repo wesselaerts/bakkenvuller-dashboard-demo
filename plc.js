@@ -36,7 +36,7 @@
   const LEK_VENSTER = 2.0;      // s middelen van het niveau bij de lektest [aangenomen]
   const NALOOP_MAX = 3.0;       // L: een naloop groter dan dit is een defect, geen kalibratie [doc §6.2 'een paar liter']
   const WD = { 10: 2, 20: 180, 30: 60, 40: 10, 42: 300, 44: 180, 46: 15, 50: 180, 55: 120, 60: 1, 70: 600, 75: 600, 80: 900, 90: 60 };   // [doc §5.1]
-  const WD_Z = { 10: 2, 20: 180, 30: 60, 40: 300, 45: 1, 50: 600, 60: 1, 70: 60 };   // [aangenomen: zoals de batchbeurt; Z50 vult de bak aan met water, zoals fase 70]
+  const WD_Z = { 10: 2, 20: 600, 30: 60, 40: 300, 45: 1, 50: 180, 60: 1, 70: 60 };   // [aangenomen: zoals de batchbeurt; Z20 doet het water van de vulling (zoals fase 70 aanvullen, 600 s), Z50 alleen de spoeling (zoals fase 50, 180 s)]
   const DIRECT_VUL_PCT = 90;    // een directe beurt vult tot dit percentage van de bak [aangenomen: het ontwerp noemt geen maat]
   const MENGPOMP_HZ = 0;        // (de meng-/transportpompen hebben geen frequentieregelaar)
   const LIMIT = (lo, x, hi) => Math.max(lo, Math.min(hi, x));
@@ -521,13 +521,16 @@
         if (teKlein) { this.storing(161, 'Vulling van ' + this.bakNaam(bak) + ': de gift van ' + this.stofNaam(teKlein.nr) + ' (' + r1(teKlein.doelL) + ' L) is kleiner dan de kleinste gift (' + minGift + ' L).', k, { check: 'Verhoog de liters in het recept van ' + this.bakNaam(bak) + ' of verlaag de kleinste gift (Service).' }); return; }
         const somStof = stoffen.reduce((a, s) => a + s.doelL, 0);
         k.par = this.latch(stoffen);
-        const spoelVoor = stoffen.length ? Math.max.apply(null, stoffen.map(s => k.par.spoel[s.nr] || 0)) : (this.perBron('P_VolSpoel', 1) || 15);
-        if (somStof + 2 * spoelVoor > V) { this.storing(171, 'Vulling van ' + this.bakNaam(bak) + ' past niet: ' + r1(somStof) + ' L stoffen en ' + r1(2 * spoelVoor) + ' L spoelwater in ' + r1(V) + ' L ruimte.', k); return; }
-        k.stoffen = stoffen; k.V = V; k.spoelVoor = spoelVoor; k.spoelNa = Math.max(spoelVoor, V - somStof - spoelVoor); k.n = 0; k.geteldTotaal = 0; k.nivBegin = L; k.afgeleverd = 0;
+        /* het water van de vulling gaat eerst (zuur in water, en het spoelt de leiding vóór de beurt [doc §5.2, E2]); na de
+           componenten alleen nog een echte spoeling van de leiding (het spoelvolume). Wessel 25-09: 272 L "spoelwater" kan niet. */
+        const spoel = stoffen.length ? Math.max.apply(null, stoffen.map(s => k.par.spoel[s.nr] || 0)) : (this.perBron('P_VolSpoel', 1) || 15);
+        const waterVoor = V - somStof - spoel;
+        if (waterVoor < spoel) { this.storing(171, 'Vulling van ' + this.bakNaam(bak) + ' past niet: ' + r1(somStof) + ' L stoffen en ' + r1(spoel) + ' L spoelwater in ' + r1(V) + ' L ruimte.', k); return; }
+        k.stoffen = stoffen; k.V = V; k.spoelVoor = waterVoor; k.spoelNa = spoel; k.n = 0; k.geteldTotaal = 0; k.nivBegin = L; k.afgeleverd = 0;
         k.lekS = this.bronCfg(stoffen.length ? stoffen[0].nr : 1); k.lekS = k.lekS && isFinite(Number(k.lekS.lektestS)) ? Number(k.lekS.lektestS) : 30;
         this.beurtStart(k, bak, stoffen.map(s => this.stofNaam(s.nr)).join(', ') || 'water');
         this.melding('', 'info', 'op', 'Vulling van ' + this.bakNaam(bak) + ' gestart: ' + r1(V) + ' L, ' + stoffen.length + ' stoffen.');
-        k.fase = 20; k.tFase = 0; k.pulsBegin = this.pulsTeller; k.doelL = spoelVoor; k.geteldL = 0; k.meststof = 'spoelwater vooraf';
+        k.fase = 20; k.tFase = 0; k.pulsBegin = this.pulsTeller; k.doelL = waterVoor; k.geteldL = 0; k.meststof = 'water vooraf';
         return;
       }
       case 20: {   // LEIDING SPOELEN vóór de beurt: water rechtstreeks in de bak

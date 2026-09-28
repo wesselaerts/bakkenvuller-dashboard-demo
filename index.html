@@ -2183,9 +2183,9 @@ body.rb-sleept,body.rb-sleept *{cursor:grabbing!important;user-select:none;-webk
 
 <div class="toast" id="toast"></div>
 
-<script src="machine.js?v=202609251543"></script>
-<script src="plc.js?v=202609251543"></script>
-<script src="nabootsing.js?v=202609251543"></script>
+<script src="machine.js?v=202609280819"></script>
+<script src="plc.js?v=202609280819"></script>
+<script src="nabootsing.js?v=202609280819"></script>
 <script>
 "use strict";
 /* ==================================================================
@@ -2418,10 +2418,10 @@ function ageStr(ms){if(!isFinite(ms))return 'onbekend';const s=Math.round(ms/100
    ================================================================== */
 // <MACHINE>
 /* Machinedefinitie - GEMAAKT DOOR gereedschap/hmi-bouw/machine_uit_io_mapping.py. NIET MET DE HAND WIJZIGEN.
-   Bron: kennisbank/bronnen/io-mapping/2026-09-21/IO-mapping bakkenvuller.xlsx (MD5 62985FFE7A923DA89F6D76A65636A41A), gemaakt 2026-09-25.
+   Bron: kennisbank/bronnen/io-mapping/2026-09-21/IO-mapping bakkenvuller.xlsx (MD5 62985FFE7A923DA89F6D76A65636A41A), gemaakt 2026-09-28.
    Wijzigt de machine? Pas de IO-mapping aan en draai het script opnieuw met --schrijf. */
 const MACHINE = {
-  bron: {"bestand": "kennisbank/bronnen/io-mapping/2026-09-21/IO-mapping bakkenvuller.xlsx", "md5": "62985FFE7A923DA89F6D76A65636A41A", "gemaakt": "2026-09-25", "door": "gereedschap/hmi-bouw/machine_uit_io_mapping.py"},
+  bron: {"bestand": "kennisbank/bronnen/io-mapping/2026-09-21/IO-mapping bakkenvuller.xlsx", "md5": "62985FFE7A923DA89F6D76A65636A41A", "gemaakt": "2026-09-28", "door": "gereedschap/hmi-bouw/machine_uit_io_mapping.py"},
   opdrachtgever: "Vereijken Vastgoed Aarle-Rixtel BV",
   locaties: [
     {"ref":"LOC-WTR","naam":"Watertoevoer","groep":"Toevoer","inhoud":"Water","volgorde":10},
@@ -3478,7 +3478,7 @@ function mountOverzicht(){
   $('#mimic-host').addEventListener('click',e=>{const f=e.target.closest('[data-keten]');if(f){openFasen(f.dataset.keten);return;}
     const g=e.target.closest('[data-ref]');if(g&&g.dataset.ref)openComponent(g.dataset.ref);});
   $$('.wb-grid .tank').forEach(t=>t.addEventListener('click',()=>{if(t.dataset.ref)openComponent(t.dataset.ref);}));
-  svStand={sleutels:{},golf:{}};
+  svStand={sleutels:{},golf:{},straalD:{}};
 }
 function verversOverzicht(){
   const st=stand();const v=vers();
@@ -3539,7 +3539,7 @@ const SV={W:1600,H:812,SNEL:900,X0:40,X1:1352,CT:24,CH:74,KY:128,ZY:160,PX:1552,
   ZT:312,TT:372,THT:124,TW:184,MPY:548,VY:588,WKY:616,WT:644,WH:110};
 const SV_ZONE={A:{x:24,w:520,cx:284},B:{x:560,w:520,cx:820}};
 const SV_DIRECT={x:1096,w:480,zb:1180};
-let lay=null,svStand={sleutels:{},golf:{}};
+let lay=null,svStand={sleutels:{},golf:{},straalD:{}};
 const svBeweging=()=>!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 function svIndeling(){
   const bronnen=[0,...schemaBronnen()];const stap=(SV.X1-SV.X0)/Math.max(1,bronnen.length);
@@ -3705,7 +3705,12 @@ function svStraalAan(el,tot){if(el.dataset.aan==='1')return;el.dataset.aan='1';e
 function svStraal(id,kleur,tot){const j=document.getElementById('jet-'+id),l=document.getElementById('jl-'+id),p=document.getElementById('pl-'+id);if(!j)return;
   if(kleur){l.style.stroke=kleur;svStraalAan(j,tot);if(p){svStraalAan(p,tot);if(svBeweging()&&!p.querySelector('animate'))p.insertAdjacentHTML('beforeend','<animate attributeName="rx" values="3;16" dur=".9s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur=".9s" repeatCount="indefinite"/>');}
     const g=j.querySelector('.sv-jet-g');if(g&&svBeweging()&&!g.querySelector('animate'))g.insertAdjacentHTML('beforeend','<animate attributeName="stroke-dashoffset" from="0" to="-12" dur=".5s" repeatCount="indefinite"/>');}
-  else{j.dataset.aan='';j.querySelectorAll(':scope > set').forEach(a=>a.remove());j.setAttribute('visibility','hidden');if(p){p.dataset.aan='';p.setAttribute('visibility','hidden');p.querySelectorAll('animate,set').forEach(a=>a.remove());}}}
+  else if(j.dataset.aan==='1'){j.dataset.aan='';if(p)p.dataset.aan='';
+    const svg=j.ownerSVGElement;const nu=svg&&svg.getCurrentTime?svg.getCurrentTime():0;
+    if(svBeweging()&&tot&&tot>nu+0.05){   /* de straal houdt op als het laatste stuk leiding leeg is gevloeid */
+      [j,p].filter(Boolean).forEach(el=>{el.querySelectorAll(':scope > set').forEach(a=>a.remove());el.insertAdjacentHTML('beforeend',`<set attributeName="visibility" to="hidden" begin="${tot.toFixed(3)}s" fill="freeze"/>`);});
+      setTimeout(()=>{if(j.dataset.aan==='1')return;j.querySelectorAll(':scope > set').forEach(a=>a.remove());j.setAttribute('visibility','hidden');if(p){p.setAttribute('visibility','hidden');p.querySelectorAll('animate,set').forEach(a=>a.remove());}},(tot-nu)*1000+80);}
+    else{j.querySelectorAll(':scope > set').forEach(a=>a.remove());j.setAttribute('visibility','hidden');if(p){p.setAttribute('visibility','hidden');p.querySelectorAll('animate,set').forEach(a=>a.remove());}}}}
 /* roering in een bak (25-09, Wessel: "echt realistisch, niet nep"). Bij rondpompen komt de retour onder het oppervlak
    de bak in (yIn): een pluim die uitwaaiert en wervels erboven, geen luchtbellen (die zijn er niet). Bij een roerder een
    kolk aan het oppervlak boven de schoep en wervels eronder. */
@@ -3725,26 +3730,38 @@ function svRoering(id,soort,yIn){const b=document.getElementById('bel-'+id);cons
   b.innerHTML=s;
 }
 function svStromen(ketens){
-  /* 25-09 (Wessel: "hij hoort vanaf de bak te vloeien"): een keten is één aaneengesloten weg van de bron tot de bak; elk
-     stuk krijgt zijn kleur (st.kleur of k.kleur). Een stuk met vast:true (de perskant) houdt zijn element als alleen de
-     kleur verandert: die kleur is wat er uit de leiding komt (machine.leidingUit), en die wisselt in één keer.
-     Geeft per stuk het tijdstip op de svg-klok terug waarop het vol is, zodat de straal in de bak pas dan begint. */
-  const g=document.getElementById('sv-stromen');const svg=g&&g.ownerSVGElement;if(!g||!svg)return {};
+  /* 25-09 (Wessel: "hij hoort vanaf de bak te vloeien" en "dat het ook uitvloeit"): een keten is één aaneengesloten
+     weg van de bron tot de bak; elk stuk krijgt zijn kleur (st.kleur of k.kleur) en loopt vol in stroomrichting, het
+     ene stuk na het andere. Valt een keten weg, dan vloeit hij op dezelfde manier leeg: het stuk bij de bron eerst,
+     elk stuk pas nadat het vol was, en daarna gaat het element weg. Komt de stroom terug tijdens het leegvloeien, dan
+     begint hij gewoon opnieuw vanaf de bron. Een stuk met vast:true (de perskant) houdt zijn element als alleen de
+     kleur verandert: die kleur is wat er uit de leiding komt (machine.leidingUit).
+     Geeft per stuk terug wanneer het vol is (klaar) en wanneer het leeg is (weg), op de svg-klok. */
+  const g=document.getElementById('sv-stromen');const svg=g&&g.ownerSVGElement;if(!g||!svg)return {klaar:{},weg:{}};
   const sleutel=(k,st)=>st.vast?(st.d+'|vast'):(st.d+'|'+(st.kleur||k.kleur));
   const nieuw={};ketens.forEach(k=>k.stukken.forEach(st=>{nieuw[sleutel(k,st)]=st.kleur||k.kleur;}));
-  const bestaand=new Set();[...g.children].forEach(e=>{const s=e.dataset.s;
-    if(!(s in nieuw))e.remove();else{bestaand.add(s);const p=e.querySelector('.sv-vloei')||e;if(p.style.stroke!==nieuw[s])p.style.stroke=nieuw[s];}});
-  const beweeg=svBeweging();const nu=beweeg&&svg.getCurrentTime?svg.getCurrentTime():0;const klaar={};
-  ketens.forEach(k=>{let t=0.15;
+  const beweeg=svBeweging();const nu=beweeg&&svg.getCurrentTime?svg.getCurrentTime():0;const klaar={},weg={};
+  const bestaand=new Set();const wegPer={};
+  [...g.children].forEach(e=>{const s=e.dataset.s;
+    if(s in nieuw){if(e.dataset.weg){e.remove();return;}bestaand.add(s);const p=e.querySelector('.sv-vloei')||e;if(p.style.stroke!==nieuw[s])p.style.stroke=nieuw[s];return;}
+    if(e.dataset.weg){weg[e.dataset.d]=Number(e.dataset.weg);return;}
+    if(!beweeg){e.remove();return;}
+    const grp=e.dataset.g||'';const p=e.querySelector('.sv-vloei');const L=Number(e.dataset.l)||0;
+    const begin=Math.max(nu,Number(e.dataset.klaar)||0,wegPer[grp]||0);const duur=L/SV.SNEL;const eind=begin+duur;wegPer[grp]=eind;
+    e.dataset.weg=eind.toFixed(3);weg[e.dataset.d]=eind;
+    const gl=e.querySelector('.sv-glans');if(gl)gl.insertAdjacentHTML('beforeend',`<set attributeName="visibility" to="hidden" begin="${begin.toFixed(3)}s" fill="freeze"/>`);
+    if(p)p.insertAdjacentHTML('beforeend',`<animate attributeName="stroke-dashoffset" from="0" to="${(-L).toFixed(1)}" dur="${duur.toFixed(3)}s" begin="${begin.toFixed(3)}s" fill="freeze"/>`);
+    setTimeout(()=>{if(e.isConnected&&e.dataset.weg)e.remove();},(eind-nu)*1000+80);});
+  ketens.forEach(k=>{let t=0.15;const grp=k.id||(k.stukken[0]&&k.stukken[0].d)||'';
     k.stukken.forEach(st=>{const sl=sleutel(k,st);const kleur=st.kleur||k.kleur;
-      if(bestaand.has(sl)){klaar[st.d]=nu;return;}bestaand.add(sl);
+      if(bestaand.has(sl)){const e=[...g.children].find(x=>x.dataset.s===sl);klaar[st.d]=e?Number(e.dataset.klaar)||nu:nu;return;}bestaand.add(sl);
       const m=document.createElementNS('http://www.w3.org/2000/svg','path');m.setAttribute('d',st.d);g.appendChild(m);const L=m.getTotalLength();m.remove();
-      if(!beweeg){g.insertAdjacentHTML('beforeend',`<path class="sv-vloei" data-s="${esc(sl)}" d="${st.d}" style="stroke:${kleur}"/>`);klaar[st.d]=nu;return;}
+      if(!beweeg){g.insertAdjacentHTML('beforeend',`<path class="sv-vloei" data-s="${esc(sl)}" data-d="${esc(st.d)}" data-g="${esc(grp)}" data-l="${L.toFixed(1)}" data-klaar="0" d="${st.d}" style="stroke:${kleur}"/>`);klaar[st.d]=nu;return;}
       const duur=L/SV.SNEL,b=(nu+t).toFixed(3),e=(nu+t+duur).toFixed(3);
-      g.insertAdjacentHTML('beforeend',`<g data-s="${esc(sl)}"><path class="sv-vloei" d="${st.d}" style="stroke:${kleur}" stroke-dasharray="${L.toFixed(1)} ${L.toFixed(1)}" stroke-dashoffset="${L.toFixed(1)}"><animate attributeName="stroke-dashoffset" from="${L.toFixed(1)}" to="0" dur="${duur.toFixed(3)}s" begin="${b}s" fill="freeze"/></path>`
+      g.insertAdjacentHTML('beforeend',`<g data-s="${esc(sl)}" data-d="${esc(st.d)}" data-g="${esc(grp)}" data-l="${L.toFixed(1)}" data-klaar="${e}"><path class="sv-vloei" d="${st.d}" style="stroke:${kleur}" stroke-dasharray="${L.toFixed(1)} ${L.toFixed(1)}" stroke-dashoffset="${L.toFixed(1)}"><animate attributeName="stroke-dashoffset" from="${L.toFixed(1)}" to="0" dur="${duur.toFixed(3)}s" begin="${b}s" fill="freeze"/></path>`
         +`<path class="sv-glans" d="${st.d}" visibility="hidden"><set attributeName="visibility" to="visible" begin="${e}s" fill="freeze"/><animate attributeName="stroke-dashoffset" from="0" to="-18" dur=".8s" repeatCount="indefinite"/></path></g>`);
       klaar[st.d]=nu+t+duur;t+=duur;});});
-  return klaar;
+  return {klaar,weg};
 }
 function verversSchema(st,aanvr){
   if(!$('#mimic-host svg')||!lay)return;
@@ -3813,19 +3830,22 @@ function verversSchema(st,aanvr){
       const stukken=[...bronOpen.map(b=>({d:SVR.bron(b.i)})),{d:SVR.zuig(i0)},{d:SVR.pompUit()}];
       if(bestOpen.length){const xs=bestOpen.map(([loc])=>svBestX(loc)).filter(x=>x!=null);const persD=SVR.pers(Math.min(...xs));stukken.push({d:persD,kleur:kleurUit,vast:true});xs.forEach(x=>stukken.push({d:SVR.drop(x),kleur:kleurUit,vast:true}));
         bestOpen.forEach(([loc])=>{const kk=PID.kanten.find(x=>x.tussenbak===loc);const id=kk?BAK_VAN_LOC[loc]:loc==='LOC-ZB'?'ZB':(BAK_VAN_LOC[loc]||'');const x=svBestX(loc);if(id){straal[id]=kleurUit;golf[id]=golf[id]||'aan';if(x!=null)straalD[id]=SVR.drop(x);}});}
-      ketens.push({kleur:kleurIn,stukken});}
+      ketens.push({id:'dos',kleur:kleurIn,stukken});}
   }
   PID.kanten.forEach(k=>{const z=lay.kanten[k.kant];const p=zetPomp(k.pomp,'ro-'+k.pomp,'');const kl=K[k.kant.toLowerCase()];const tb=BAK_VAN_LOC[k.tussenbak];
     if(v.ok&&p.bd===true){const stukken=[{d:SVR.tankUit(z)},{d:SVR.naarVerdeel(z)}];golf[tb]=golf[tb]||'aan';
       if(open[k.mengklep]===true){stukken.push({d:SVR.lus(z)});roering[tb]={soort:'retour',yIn:z.yIn};golf[tb]='snel';
         const ro=document.getElementById('ro-'+k.pomp);if(ro&&ro.textContent==='in bedrijf')ro.textContent='in bedrijf · rondpompen';}
       k.werkbakken.forEach(([loc,klep],j)=>{if(open[klep]===true){stukken.push({d:SVR.naarWerk(z,j)});const id=BAK_VAN_LOC[loc];straal[id]=kl;straalD[id]=SVR.naarWerk(z,j);golf[id]=golf[id]||'aan';}});
-      ketens.push({kleur:kl,stukken});}});
-  const klaar=svStromen(ketens);
+      ketens.push({id:'kant'+k.kant,kleur:kl,stukken});}});
+  const {klaar,weg}=svStromen(ketens);
+  /* de straal: aan zodra de vloeistof in de tekening bij de bak is, uit zodra het laatste stuk leeg is gevloeid;
+     het laatste stuk per bak wordt onthouden, zodat het uitvloeien de straal kan uitzetten */
+  const sd=svStand.straalD||(svStand.straalD={});Object.keys(straalD).forEach(id=>{sd[id]=straalD[id];});
   /* sporenbakken: de roerder draait als de menger aan staat (DO) */
   lay.sporen.forEach((h,i)=>{const id=BAK_VAN_LOC[h.loc]||('SP'+(i+1));if(!h.menger)return;const b=v.ok?doVan(h.menger):null;
     svRoer(id,b===true);svZet(document.getElementById('rm-'+id),'onb',b===null);if(b===true){roering[id]={soort:'roerder'};golf[id]='snel';}});
-  bakken.forEach(([,id])=>{svStraal(id,straal[id]||null,straalD[id]?klaar[straalD[id]]:0);svRoering(id,roering[id]?roering[id].soort:'',roering[id]?roering[id].yIn:0);svGolven(id,!!golf[id],golf[id]==='snel');});
+  bakken.forEach(([,id])=>{const d=sd[id];svStraal(id,straal[id]||null,straal[id]?(d?klaar[d]:0):(d?weg[d]:0));svRoering(id,roering[id]?roering[id].soort:'',roering[id]?roering[id].yIn:0);svGolven(id,!!golf[id],golf[id]==='snel');});
 }
 
 
