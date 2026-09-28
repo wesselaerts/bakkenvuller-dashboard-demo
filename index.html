@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Bakkenvuller – bediening</title>
 <!-- Lettertypen worden LOKAAL geladen (geen CDN → werkt offline op de controller). Zie @font-face hieronder + de map ./fonts/ -->
 <style>
@@ -1057,7 +1057,7 @@ body{background:linear-gradient(177deg,#F0F4F0 0%,#E7EDE8 100%);background-attac
 /* basis-voet: bus/voeding (zoals onderzijde echte module) */
 .hw-ef{display:flex;align-items:center;gap:6px;padding:3px 7px;margin-top:auto;border-top:1px solid rgba(0,0,0,.12);background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(0,0,0,.04));font-family:var(--mono)}
 .hw-ef .t{font-size:7.5px;font-weight:800;color:#46514b;letter-spacing:.03em}
-
+.hw-ef .ty{margin-left:auto;font-size:7.5px;color:#59635e;font-weight:600}
 .hw-ef .ty2{margin:0 auto;font-family:var(--mono);font-size:9px;font-weight:700;color:#2c352f;letter-spacing:.02em}
 
 
@@ -2145,6 +2145,24 @@ body.rb-sleept,body.rb-sleept *{cursor:grabbing!important;user-select:none;-webk
 body{background:#E7EDE8}
 body::before{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:-1;pointer-events:none;background:linear-gradient(177deg,#F0F4F0 0%,#E7EDE8 100%)}
 :root[data-theme="dark"] body::before{content:none}
+
+/* 28-09 (Wessel: "de app algemeen efficiënter voor het scherm, zonder het uiterlijk te veranderen"): de bovenbalk was
+   86 % wit met een wazige glasrand (backdrop-filter). Die glasrand rekent de browser bij elke scrolstap opnieuw uit.
+   In rust ziet de balk er precies zo uit als deze effen kleur (gemeten in de afdruk: 253,254,253 en donker 19,24,25);
+   alleen schemert de inhoud er bij het scrollen niet meer vaag doorheen. */
+.topbar{background:#FDFEFD;-webkit-backdrop-filter:none;backdrop-filter:none}
+:root[data-theme="dark"] .topbar{background:#131819}
+
+/* 28-09 (Wessel: "niet meer per ongeluk inzoomen tijdens het scrollen, het moet een heel dashboard blijven"):
+   met een vinger kun je scrollen, maar niet knijpen of dubbeltikken om te zoomen; geen stuiteren of terugvegen aan de
+   rand, geen grijze flits bij een tik. Op een aanraakscherm zonder muis ook geen tekst selecteren of het lang-drukken-
+   menu (invoervelden wel). Het uiterlijk verandert niet. */
+*{touch-action:pan-x pan-y}
+html{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+@media (hover:none) and (pointer:coarse){
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  input,textarea,select,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
+}
 </style>
 </head>
 <body>
@@ -2192,9 +2210,9 @@ body::before{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:-1;
 
 <div class="toast" id="toast"></div>
 
-<script src="machine.js?v=202609280833"></script>
-<script src="plc.js?v=202609280833"></script>
-<script src="nabootsing.js?v=202609280833"></script>
+<script src="machine.js?v=202609280907"></script>
+<script src="plc.js?v=202609280907"></script>
+<script src="nabootsing.js?v=202609280907"></script>
 <script>
 "use strict";
 /* ==================================================================
@@ -2214,7 +2232,10 @@ body::before{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:-1;
    ================================================================== */
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
-const fix=(n,d=0)=>Number(n).toLocaleString('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d});
+/* 28-09: één getalopmaker per aantal decimalen, niet één per getal (toLocaleString maakt er elke keer een nieuwe; op
+   Instellingen honderden per ronde). Zelfde uitkomst: toLocaleString gebruikt precies deze opmaker. */
+const FIX_NF={};
+const fix=(n,d=0)=>(FIX_NF[d]||(FIX_NF[d]=new Intl.NumberFormat('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d}))).format(Number(n));
 const STREEP='—';
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
@@ -2417,9 +2438,13 @@ function timeAgo(ts){const s=Math.floor((Date.now()-ts)/1000);if(s<-60)return 'k
 function laatsteZondag(j,m){const d=new Date(Date.UTC(j,m+1,0,1));d.setUTCDate(d.getUTCDate()-d.getUTCDay());return d.getTime();}
 function nlZomertijd(ts){ts=Number(ts);const j=new Date(ts).getUTCFullYear();return ts>=laatsteZondag(j,2)&&ts<laatsteZondag(j,9);}
 function nlDatum(ts){ts=Number(ts);return new Date(ts+(nlZomertijd(ts)?2:1)*3600000);}
-function clockStr(ts){return nlDatum(ts).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'});}
-function tijdStr(ts){return nlDatum(ts).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'UTC'});}
-function dateStr(ts){return nlDatum(ts).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});}
+/* 28-09: vaste opmakers voor tijd en datum (zelfde uitkomst als toLocaleTimeString/-DateString met deze opties) */
+const OPM_KLOK=new Intl.DateTimeFormat('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'}),
+  OPM_TIJD=new Intl.DateTimeFormat('nl-NL',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'UTC'}),
+  OPM_DATUM=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+function clockStr(ts){return OPM_KLOK.format(nlDatum(ts));}
+function tijdStr(ts){return OPM_TIJD.format(nlDatum(ts));}
+function dateStr(ts){return OPM_DATUM.format(nlDatum(ts));}
 function ageStr(ms){if(!isFinite(ms))return 'onbekend';const s=Math.round(ms/1000);if(s<60)return s+' s';const m=Math.floor(s/60);return m+' m '+(s%60)+' s';}
 
 /* ==================================================================
@@ -2857,6 +2882,71 @@ Object.assign(I,{
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>'
 });
 
+/* ==================================================================
+   BIJWERKEN IN PLAATS VAN VERVANGEN (28-09-2026, voor het paneel)
+   ------------------------------------------------------------------
+   Elke verversronde (om de 2 s) en elke tik van de klok schreef ieder
+   scherm zijn inhoud opnieuw, ook als er niets veranderd was. Op het
+   paneel (Cortex-A53) kostte dat bij Instellingen en Controller bijna
+   een seconde per ronde. Binnen bijwerken(...) doet het dashboard:
+   - innerHTML: de nieuwe opmaak wordt naast wat er staat gelegd, en
+     alleen wat anders is wordt aangepast; dezelfde knopen blijven staan;
+   - textContent, setAttribute en className: dezelfde waarde nog eens
+     schrijven wordt overgeslagen.
+   Het resultaat is wat innerHTML zou geven (ook invoervelden en
+   keuzelijsten krijgen hun waarde uit de nieuwe opmaak), zonder het
+   scherm opnieuw op te bouwen. Buiten een ronde (een scherm openen, een
+   klik, een venster) werkt alles zoals altijd. Een browser zonder
+   template-element doet alles zoals altijd.
+   ================================================================== */
+const BW={aan:0,ronde:0};
+function bijwerken(f){if(!BW.aan)BW.ronde++;BW.aan++;try{return f();}finally{BW.aan--;}}
+(function(){
+  const H=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+  const T=Object.getOwnPropertyDescriptor(Node.prototype,'textContent');
+  const C=Object.getOwnPropertyDescriptor(Element.prototype,'className');
+  const SA=Element.prototype.setAttribute;
+  if(!H||!H.set||!T||!T.set||!C||!C.set||!('content' in document.createElement('template')))return;
+  const XHTML='http://www.w3.org/1999/xhtml';const tpl=document.createElement('template');
+  const zelfde=(a,b)=>a.nodeType===b.nodeType&&a.nodeName===b.nodeName&&(a.nodeType!==1||a.namespaceURI===b.namespaceURI);
+  function attrs(a,b){const ba=b.attributes;
+    for(let i=0;i<ba.length;i++){const x=ba[i];
+      if(x.namespaceURI){if(a.getAttributeNS(x.namespaceURI,x.localName)!==x.value)a.setAttributeNS(x.namespaceURI,x.name,x.value);}
+      else if(a.getAttribute(x.name)!==x.value)SA.call(a,x.name,x.value);}
+    const aa=a.attributes;
+    for(let i=aa.length-1;i>=0;i--){const x=aa[i];if(!(x.namespaceURI?b.hasAttributeNS(x.namespaceURI,x.localName):b.hasAttribute(x.name)))a.removeAttributeNode(x);}}
+  function knoop(a,b){const t=a.nodeType;
+    if(t===3||t===8){if(a.data!==b.data)a.data=b.data;return;}
+    if(t!==1)return;
+    attrs(a,b);const tag=a.tagName;
+    if(tag==='INPUT'){const ty=(b.getAttribute('type')||'').toLowerCase();
+      if(ty==='checkbox'||ty==='radio'){const c=b.hasAttribute('checked');if(a.checked!==c)a.checked=c;}
+      else if(a!==document.activeElement){const w=b.getAttribute('value')||'';if(a.value!==w)a.value=w;}
+      return;}
+    if(tag==='TEXTAREA'){if(a!==document.activeElement){const w=b.textContent;if(a.value!==w)a.value=w;}return;}
+    kinderen(a,b);
+    if(tag==='SELECT'&&a!==document.activeElement){const o=b.querySelectorAll('option');let i=o.length?0:-1;
+      for(let k=0;k<o.length;k++)if(o[k].hasAttribute('selected'))i=k;
+      if(a.selectedIndex!==i)a.selectedIndex=i;}}
+  function kinderen(oud,nieuw){let a=oud.firstChild,b=nieuw.firstChild;
+    while(b){const bv=b.nextSibling;
+      if(!a)oud.appendChild(b);
+      else if(zelfde(a,b)){knoop(a,b);a=a.nextSibling;}
+      else{const av=a.nextSibling;oud.replaceChild(b,a);a=av;}
+      b=bv;}
+    while(a){const av=a.nextSibling;oud.removeChild(a);a=av;}}
+  Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:H.enumerable,get:H.get,
+    set(v){if(!BW.aan||this.namespaceURI!==XHTML||!this.firstChild||this.tagName==='TEMPLATE'){H.set.call(this,v);return;}
+      H.set.call(tpl,v==null?'':String(v));kinderen(this,tpl.content);H.set.call(tpl,'');}});
+  Object.defineProperty(Node.prototype,'textContent',{configurable:true,enumerable:T.enumerable,get:T.get,
+    set(v){if(BW.aan&&this.nodeType===1){const s=v==null?'':String(v);const f=this.firstChild;
+      if(f?(f===this.lastChild&&f.nodeType===3&&f.data===s):s==='')return;}
+      T.set.call(this,v);}});
+  Object.defineProperty(Element.prototype,'className',{configurable:true,enumerable:C.enumerable,get:C.get,
+    set(v){if(BW.aan&&this.getAttribute('class')===String(v))return;C.set.call(this,v);}});
+  Element.prototype.setAttribute=function(n,v){if(BW.aan&&this.getAttribute(n)===String(v))return;return SA.call(this,n,v);};
+})();
+
 
 /* ==================================================================
    BRON - de enige bron van data: de brug.
@@ -2893,7 +2983,8 @@ async function haalBron(){
     const ts=j.ts?Date.parse(j.ts):NaN;bron.skewMs=isFinite(ts)?(Date.now()-ts):0;
     try{
       const ev=await fetch(basisUrl()+'/events',{cache:'no-store',signal:ctl?ctl.signal:undefined});
-      if(ev.ok){const a=await ev.json();bron.events=Array.isArray(a)?a.slice(0,500):[];bron.evOk=true;}else bron.evOk=false;
+      /* 28-09: meestal zijn de meldingen niet veranderd; dan de tekst niet opnieuw uitpakken (op het paneel scheelt dat werk) */
+      if(ev.ok){const txt=await ev.text();if(txt!==bron.evTekst){const a=JSON.parse(txt);bron.events=Array.isArray(a)?a.slice(0,500):[];bron.evTekst=txt;}bron.evOk=true;}else bron.evOk=false;
     }catch(e){bron.evOk=false;}
   }catch(e){
     bron.status='fout';
@@ -2907,7 +2998,13 @@ async function haalBron(){
 /* het blok 'bridge' uit de laatste momentopname: wie de brug is en hoe het met de PLC gaat */
 function brugBlok(){const s=bron.snap;return s&&s.bridge&&typeof s.bridge==='object'?s.bridge:null;}
 /* vers = de brug antwoordde binnen STALE_MS én zijn PLC-lezing is niet ouder dan PLC_STALE_S */
+/* 28-09: binnen één verversronde verandert de versheid niet; een scherm vraagt hem honderden keren (Instellingen) */
+let versGeheugen={ronde:-1,w:null};
 function vers(){
+  if(BW.aan&&versGeheugen.ronde===BW.ronde&&versGeheugen.w)return versGeheugen.w;
+  const w=versBepalen();if(BW.aan)versGeheugen={ronde:BW.ronde,w};return w;
+}
+function versBepalen(){
   const age=bron.lastOk?Date.now()-bron.lastOk:Infinity;const b=brugBlok();
   const pa=b&&b.statusAgeSec!==null&&b.statusAgeSec!==undefined&&b.statusAgeSec!==''?Number(b.statusAgeSec):NaN;
   const brugOk=age<=STALE_MS,plcVers=isFinite(pa)&&pa<=PLC_STALE_S;
@@ -3156,7 +3253,13 @@ function wachtOp(voorwaarde,ms){
    Uit /events van de brug. sev: alarm | warn | info. aud: op (bediening
    ziet hem) of svc (alleen service). Alles wat uit de feed komt, wordt aan de
    grens ge-escaped. */
+/* 28-09: meldingen() wordt een paar keer per ronde gevraagd; zolang de lijst van de brug dezelfde is, niet opnieuw omzetten */
+let mldGeheugen={ev:null,lijst:null};
 function meldingen(){
+  if(mldGeheugen.ev===bron.events&&mldGeheugen.lijst)return mldGeheugen.lijst.slice();
+  const uit=meldingenOmzetten();mldGeheugen={ev:bron.events,lijst:uit};return uit.slice();
+}
+function meldingenOmzetten(){
   const uit=[];
   (bron.events||[]).forEach(e=>{
     if(!e||typeof e!=='object')return;
@@ -3285,6 +3388,9 @@ function schermUitAdres(){let k='';try{k=decodeURIComponent((location.hash||'').
   if(!magScherm(k)){if(inlogBekend())return false;ui.niveau=NIVEAUS[SCHERMEN[k].n][0];}
   ui.scherm=k;return true;}
 function render(){
+  /* een scherm opbouwen doet altijd alles opnieuw, ook als het binnen een verversronde gebeurt (zie BIJWERKEN) */
+  const bw=BW.aan;BW.aan=0;
+  try{
   if(!magScherm(ui.scherm))ui.scherm='overzicht';
   zetAdres();
   getekendCfg=cfgSleutel();
@@ -3293,6 +3399,7 @@ function render(){
   if(s.mount)s.mount();
   if(s.ververs)s.ververs();
   main.classList.remove('reveal');void main.offsetWidth;main.classList.add('reveal');
+  }finally{BW.aan=bw;}
 }
 
 /* ---- bovenbalk --------------------------------------------------- */
@@ -3313,8 +3420,9 @@ function verbindingStand(){
 function tekenVerbinding(){
   const el=$('#conn');if(!el)return;const lbl=el.querySelector('.lbl');
   const st=verbindingStand();
-  el.className='tb-conn'+(st.cls?' '+st.cls:'');if(lbl)lbl.textContent=st.txt;el.title='Bron: '+st.txt;
-  const rb=$('#rail-bron');if(rb)rb.textContent=bronTekst();
+  const kl='tb-conn'+(st.cls?' '+st.cls:''),ti='Bron: '+st.txt,bt=bronTekst();   /* 28-09: elke seconde, dus alleen schrijven wat anders is */
+  if(el.className!==kl)el.className=kl;if(lbl&&lbl.textContent!==st.txt)lbl.textContent=st.txt;if(el.title!==ti)el.title=ti;
+  const rb=$('#rail-bron');if(rb&&rb.textContent!==bt)rb.textContent=bt;
 }
 function tekenBanner(){
   let el=document.getElementById('conn-banner');
@@ -3329,6 +3437,8 @@ function tekenBanner(){
   else if(st.s==='nabootsing'){bg='#4b3fa0';msg='NABOOTSING – testgegevens van '+esc(String(b.bronNaam||'een testserver'))+', geen echte machine';}
   else if(st.s==='onbekend'){bg='#9a5b00';msg='De brug zegt niet waar zijn gegevens vandaan komen (bridge.bron ontbreekt)';}
   else if(st.s==='gestopt'){bg='#b3261e';msg='DE PLC DRAAIT NIET'+(b.plcToestand?(' (stand: '+esc(String(b.plcToestand))+')'):'')+' – de machine doet niets';}
+  /* 28-09: alleen tekenen als de balk anders wordt (of het venster een andere breedte heeft); dit loopt elke seconde */
+  const sleutel=(msg?bg+'|'+msg:'')+'|'+window.innerWidth;if(el.__sleutel===sleutel)return;el.__sleutel=sleutel;
   if(msg){el.style.background=bg;el.innerHTML=ic('warn',14,2.2)+' '+msg;el.style.display='block';document.documentElement.style.setProperty('--connb',el.offsetHeight+'px');}
   else{el.style.display='none';document.documentElement.style.setProperty('--connb','0px');}
 }
@@ -3340,9 +3450,12 @@ function tekenBel(){
   const hb=$('#tb-hand');if(hb){const hand=!!(st&&st.modus==='HAND');hb.style.display=hand?'inline-flex':'none';if(hand)hb.innerHTML=ic('hand',14,2.4)+'<span class="lbl">&nbsp;HAND</span>';}
 }
 /* de klok van dit scherm (niet van de PLC), altijd in Nederlandse tijd */
+/* 28-09: de opmaak van de klok één keer aanmaken (elke seconde een nieuwe kost het paneel onnodig werk); zelfde uitkomst */
+const KLOK_T=new Intl.DateTimeFormat('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'}),KLOK_D=new Intl.DateTimeFormat('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
 function tekenKlok(){const d=nlDatum(Date.now());const t=$('#clk-t'),dd=$('#clk-d');
-  if(t)t.textContent=d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'});
-  if(dd)dd.textContent=d.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});}
+  const tt=KLOK_T.format(d),td=KLOK_D.format(d);
+  if(t&&t.textContent!==tt)t.textContent=tt;
+  if(dd&&dd.textContent!==td)dd.textContent=td;}
 function zetThema(t){ui.thema=t==='dark'?'dark':'light';document.documentElement.setAttribute('data-theme',ui.thema);
   const tt=$('#theme-toggle');if(tt){tt.innerHTML=ic(ui.thema==='dark'?'sun':'moon',20,2);tt.title=ui.thema==='dark'?'Licht thema':'Donker thema';}}
 
@@ -5705,7 +5818,9 @@ Object.assign(SCHERMEN.configuratie,{view:viewConfiguratie,mount:mountConfigurat
 
 /* na elke ronde met de brug: bovenbalk, banner, bel, en het open scherm bijwerken */
 let vorigeNavBadge='',vorigeSessieSleutel='';
-function naElkeRonde(){
+/* 28-09: een verversronde werkt het scherm bij in plaats van het opnieuw op te bouwen (BIJWERKEN in A_basis.js) */
+function naElkeRonde(){bijwerken(naElkeRondeIn);}
+function naElkeRondeIn(){
   tekenVerbinding();tekenBanner();tekenBel();
   const sk=inlogBekend()?String(sessieNiveau()):'-';if(sk!==vorigeSessieSleutel){vorigeSessieSleutel=sk;tekenNiveaus();}
   sessieBijwerken();
@@ -5764,7 +5879,17 @@ function init(){
   if(boot){setTimeout(()=>{const bs=$('#bstat');if(bs)bs.innerHTML='<span>Verbinden met de brug…</span>';},300);
     setTimeout(()=>boot.classList.add('hide'),900);setTimeout(()=>{if(boot.parentNode)boot.parentNode.removeChild(boot);},1500);}
   setInterval(tekenKlok,1000);
-  setInterval(()=>{tekenVerbinding();tekenBanner();},1000);   // 'verouderd' moet ook zonder nieuwe ronde verschijnen
+  setInterval(()=>bijwerken(()=>{tekenVerbinding();tekenBanner();}),1000);   // 'verouderd' moet ook zonder nieuwe ronde verschijnen
+  /* 28-09: staat er een venster open, dan staan de animaties van het schema erachter stil: het wazige donkere vlak
+     hoeft dan niet elk beeldje opnieuw berekend te worden. Dicht = ze lopen verder. */
+  const scrim=$('#modal-scrim');
+  if(scrim&&'MutationObserver' in window)new MutationObserver(()=>{const sv=document.querySelector('#mimic-host svg');if(!sv||!sv.pauseAnimations)return;
+    if(scrim.classList.contains('show'))sv.pauseAnimations();else sv.unpauseAnimations();}).observe(scrim,{attributes:true,attributeFilter:['class']});
+  /* 28-09 (Wessel: "het moet een heel dashboard blijven"): lang drukken met een vinger opent geen browsermenu;
+     met de muis (rechts klikken op de laptop) werkt het gewoon */
+  let aanraking=0;
+  document.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')aanraking=Date.now();},{capture:true,passive:true});
+  document.addEventListener('contextmenu',e=>{if(Date.now()-aanraking<2000&&!(e.target&&e.target.closest&&e.target.closest('input,textarea')))e.preventDefault();});
   setInterval(nachtelijkVerversen,60000);
   pollLus();
 }
